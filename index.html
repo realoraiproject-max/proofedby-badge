@@ -36,7 +36,7 @@ input:focus { border-color: var(--green-soft); background: var(--white); }
 .btn:active { transform: scale(0.99); }
 .btn:disabled { opacity: 0.5; cursor: not-allowed; }
 .msg { font-size: 13px; padding: 12px 14px; border-radius: 8px; margin-top: 14px; display: none; line-height: 1.5; }
-.msg.error { background: #FDF2F2; color: var(--error); border: 1px solid #F5C6C6; display: block; }
+.msg.error   { background: #FDF2F2; color: var(--error); border: 1px solid #F5C6C6; display: block; }
 .msg.loading { background: #F0F7F4; color: var(--green-mid); border: 1px solid #C3E6D8; display: block; }
 .result-card { display: none; background: var(--white); border: 1px solid var(--border); border-radius: 20px; width: 100%; max-width: 440px; padding: 40px; text-align: center; animation: fadeUp 0.5s ease both; }
 .result-card.show { display: block; }
@@ -44,8 +44,8 @@ input:focus { border-color: var(--green-soft); background: var(--white); }
 .badge-img { width: 220px; height: 220px; border-radius: 50%; object-fit: cover; border: 3px solid var(--border); }
 .verified-dot { position: absolute; bottom: 8px; right: 8px; width: 36px; height: 36px; background: var(--green-deep); border-radius: 50%; border: 3px solid var(--white); display: flex; align-items: center; justify-content: center; }
 .verified-dot svg { width: 16px; height: 16px; }
-.result-name { font-family: 'DM Serif Display', serif; font-size: 22px; color: var(--ink); margin-bottom: 4px; }
-.result-serial { font-family: 'DM Mono', monospace; font-size: 12px; color: var(--muted); letter-spacing: 2px; margin-bottom: 4px; }
+.result-name    { font-family: 'DM Serif Display', serif; font-size: 22px; color: var(--ink); margin-bottom: 4px; }
+.result-serial  { font-family: 'DM Mono', monospace; font-size: 12px; color: var(--muted); letter-spacing: 2px; margin-bottom: 4px; }
 .result-vocation { font-size: 14px; color: var(--green-mid); font-weight: 500; margin-bottom: 24px; }
 .divider { height: 1px; background: var(--border); margin: 24px 0; }
 .dl-btn { display: inline-flex; align-items: center; gap: 8px; padding: 14px 28px; background: var(--green-deep); color: var(--white); border: none; border-radius: 10px; font-family: 'Outfit', sans-serif; font-size: 15px; font-weight: 500; cursor: pointer; text-decoration: none; transition: background 0.2s; width: 100%; justify-content: center; }
@@ -77,11 +77,11 @@ input:focus { border-color: var(--green-soft); background: var(--white); }
     <div class="card-desc">신청 시 입력한 이름과 이메일을 입력하면<br/>배지를 바로 다운로드할 수 있습니다.</div>
     <div class="field">
       <label>Legal Name</label>
-      <input type="text" id="input-name" placeholder="신청 시 입력한 이름"/>
+      <input type="text" id="input-name" placeholder="신청 시 입력한 이름" autocomplete="name"/>
     </div>
     <div class="field">
       <label>Email Address</label>
-      <input type="email" id="input-email" placeholder="신청 시 입력한 이메일"/>
+      <input type="email" id="input-email" placeholder="신청 시 입력한 이메일" autocomplete="email"/>
     </div>
     <button class="btn" id="verify-btn" onclick="verifyUser()">배지 확인하기</button>
     <div class="msg" id="msg"></div>
@@ -94,8 +94,8 @@ input:focus { border-color: var(--green-soft); background: var(--white); }
         <svg viewBox="0 0 16 16" fill="none"><path d="M3 8L6.5 11.5L13 5" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
       </div>
     </div>
-    <div class="result-name" id="result-name"></div>
-    <div class="result-serial" id="result-serial"></div>
+    <div class="result-name"     id="result-name"></div>
+    <div class="result-serial"   id="result-serial"></div>
     <div class="result-vocation" id="result-vocation"></div>
     <a class="dl-btn" id="dl-btn" href="#">
       <svg viewBox="0 0 18 18" fill="none"><path d="M9 2V12M9 12L5.5 8.5M9 12L12.5 8.5" stroke="white" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><path d="M2 14H16" stroke="white" stroke-width="1.8" stroke-linecap="round"/></svg>
@@ -112,112 +112,193 @@ input:focus { border-color: var(--green-soft); background: var(--white); }
 <div class="toast" id="toast"></div>
 
 <script>
-// ★ Google Apps Script 웹앱 URL을 여기에 입력
-const GAS_URL = "여기에_Apps_Script_웹앱_URL_입력";
+// ★ Google Apps Script 웹앱 배포 후 URL을 여기에 입력하세요
+const GAS_URL = "https://script.google.com/macros/s/AKfycbxq7lHYR6tbTxL9myc9KD-Db7frPD8JdVTivrV_KikOR2nIZ8wAuBid97qy4gedFP-I/exec";
 
 let currentSerial = "";
 
+// -------------------------------------------------------
+//  배지 조회 메인 함수
+// -------------------------------------------------------
 async function verifyUser() {
-  const name  = document.getElementById('input-name').value.trim();
-  const email = document.getElementById('input-email').value.trim().toLowerCase();
-  const btn   = document.getElementById('verify-btn');
+  // GAS_URL 미설정 체크
+  if (!GAS_URL || GAS_URL.includes("여기에")) {
+    showMsg("서비스 준비 중입니다. 잠시 후 다시 시도해주세요.", "error");
+    return;
+  }
 
-  if (!name || !email) { showMsg('이름과 이메일을 모두 입력해주세요.', 'error'); return; }
+  const name  = document.getElementById("input-name").value.trim();
+  const email = document.getElementById("input-email").value.trim().toLowerCase();
+  const btn   = document.getElementById("verify-btn");
+
+  if (!name || !email) {
+    showMsg("이름과 이메일을 모두 입력해주세요.", "error");
+    return;
+  }
+
+  // 이메일 형식 간단 검증
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    showMsg("올바른 이메일 형식을 입력해주세요.", "error");
+    return;
+  }
 
   btn.disabled = true;
-  showMsg('확인 중입니다...', 'loading');
+  showMsg("확인 중입니다...", "loading");
 
   try {
     const url = `${GAS_URL}?name=${encodeURIComponent(name)}&email=${encodeURIComponent(email)}`;
     const res  = await fetch(url, {
-      method: 'GET',
-      mode: 'cors',
-      redirect: 'follow'
+      method: "GET",
+      redirect: "follow",
     });
+
     const text = await res.text();
-    const data = JSON.parse(text);
+
+    // 서버가 HTML을 반환한 경우 (404, 에러 페이지 등) 방어
+    if (!text || text.trim().startsWith("<")) {
+      showMsg(
+        "서버 연결에 실패했습니다. (응답 오류)<br/>잠시 후 다시 시도해주세요.",
+        "error"
+      );
+      btn.disabled = false;
+      return;
+    }
+
+    let data;
+    try {
+      data = JSON.parse(text);
+    } catch (_) {
+      showMsg(
+        "서버 응답을 처리할 수 없습니다.<br/>잠시 후 다시 시도해주세요.",
+        "error"
+      );
+      btn.disabled = false;
+      return;
+    }
+
+    if (data.error) {
+      showMsg(`오류: ${data.error}`, "error");
+      btn.disabled = false;
+      return;
+    }
 
     if (!data.found) {
-      showMsg('일치하는 정보를 찾을 수 없습니다.<br/>이름과 이메일을 다시 확인해주세요.', 'error');
+      showMsg(
+        "일치하는 정보를 찾을 수 없습니다.<br/>이름과 이메일을 다시 확인해주세요.",
+        "error"
+      );
       btn.disabled = false;
       return;
     }
 
     if (!data.imageUrl) {
-      showMsg('배지가 아직 생성 중입니다. (약 10~30초 소요)<br/>잠시 후 다시 시도해주세요.', 'error');
+      showMsg(
+        "배지가 아직 생성 중입니다. (약 10~30초 소요)<br/>잠시 후 다시 시도해주세요.",
+        "error"
+      );
       btn.disabled = false;
       return;
     }
 
     showResult(data.name, data.serial, data.vocation, data.imageUrl);
 
-  } catch(e) {
-    console.error('오류:', e);
-    showMsg('조회 중 오류가 발생했습니다.<br/>잠시 후 다시 시도해주세요.', 'error');
+  } catch (e) {
+    console.error("조회 오류:", e);
+    showMsg(
+      "조회 중 오류가 발생했습니다.<br/>잠시 후 다시 시도해주세요.",
+      "error"
+    );
     btn.disabled = false;
   }
 }
 
+// -------------------------------------------------------
+//  결과 카드 표시
+// -------------------------------------------------------
 function showResult(name, serial, vocation, imgUrl) {
   currentSerial = serial;
 
-  document.getElementById('badge-img').src              = imgUrl;
-  document.getElementById('result-name').textContent    = name;
-  document.getElementById('result-serial').textContent  = serial;
-  document.getElementById('result-vocation').textContent = vocation;
+  document.getElementById("badge-img").src               = imgUrl;
+  document.getElementById("result-name").textContent     = name;
+  document.getElementById("result-serial").textContent   = serial;
+  document.getElementById("result-vocation").textContent = vocation || "";
 
-  document.getElementById('dl-btn').onclick = async (e) => {
+  document.getElementById("dl-btn").onclick = async (e) => {
     e.preventDefault();
     try {
       const r    = await fetch(imgUrl);
       const blob = await r.blob();
-      const a    = document.createElement('a');
+      const a    = document.createElement("a");
       a.href     = URL.createObjectURL(blob);
       a.download = `ProofedBy_${serial}.png`;
       a.click();
       URL.revokeObjectURL(a.href);
     } catch {
-      window.open(imgUrl, '_blank');
+      // CORS 등으로 fetch 실패 시 새 탭으로 열기
+      window.open(imgUrl, "_blank");
     }
   };
 
-  document.getElementById('form-card').style.display = 'none';
-  document.getElementById('result-card').classList.add('show');
+  document.getElementById("form-card").style.display = "none";
+  document.getElementById("result-card").classList.add("show");
 }
 
+// -------------------------------------------------------
+//  뒤로 가기
+// -------------------------------------------------------
 function goBack() {
-  document.getElementById('result-card').classList.remove('show');
-  document.getElementById('form-card').style.display = 'block';
-  document.getElementById('verify-btn').disabled = false;
-  document.getElementById('msg').className = 'msg';
+  document.getElementById("result-card").classList.remove("show");
+  document.getElementById("form-card").style.display = "block";
+  document.getElementById("verify-btn").disabled = false;
+  document.getElementById("msg").className = "msg";
+  currentSerial = "";
 }
 
+// -------------------------------------------------------
+//  메시지 표시
+// -------------------------------------------------------
 function showMsg(text, type) {
-  const el = document.getElementById('msg');
+  const el      = document.getElementById("msg");
   el.innerHTML  = text;
   el.className  = `msg ${type}`;
 }
 
+// -------------------------------------------------------
+//  클립보드 공유
+// -------------------------------------------------------
 function copyLink() {
-  navigator.clipboard.writeText(`${location.origin}${location.pathname}?s=${currentSerial}`)
-    .then(() => showToast('링크가 복사되었습니다'));
+  const url = `${location.origin}${location.pathname}?s=${encodeURIComponent(currentSerial)}`;
+  navigator.clipboard.writeText(url).then(() => showToast("링크가 복사되었습니다"));
 }
 
 function copySerial() {
   navigator.clipboard.writeText(currentSerial)
-    .then(() => showToast('시리얼 번호가 복사되었습니다'));
+    .then(() => showToast("시리얼 번호가 복사되었습니다"));
 }
 
+// -------------------------------------------------------
+//  토스트
+// -------------------------------------------------------
 function showToast(msg) {
-  const t = document.getElementById('toast');
+  const t = document.getElementById("toast");
   t.textContent = msg;
-  t.classList.add('show');
-  setTimeout(() => t.classList.remove('show'), 2500);
+  t.classList.add("show");
+  setTimeout(() => t.classList.remove("show"), 2500);
 }
 
-window.addEventListener('DOMContentLoaded', () => {
-  const s = new URLSearchParams(location.search).get('s');
-  if (s) showToast('이름과 이메일을 입력하면 배지를 확인할 수 있습니다');
+// -------------------------------------------------------
+//  페이지 로드 시 URL 파라미터 처리
+// -------------------------------------------------------
+window.addEventListener("DOMContentLoaded", () => {
+  const s = new URLSearchParams(location.search).get("s");
+  if (s) showToast("이름과 이메일을 입력하면 배지를 확인할 수 있습니다");
+
+  // Enter 키로 제출
+  ["input-name", "input-email"].forEach((id) => {
+    document.getElementById(id).addEventListener("keydown", (e) => {
+      if (e.key === "Enter") verifyUser();
+    });
+  });
 });
 </script>
 </body>
