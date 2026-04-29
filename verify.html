@@ -170,7 +170,7 @@ input:focus { border-color: var(--green-soft); background: var(--white); }
 <div class="toast" id="toast"></div>
 
 <script>
-const GAS_URL = "https://script.google.com/macros/s/AKfycbwU_GMSghr6yjd5aTTAJmQrRR2GOEevWOmeG_hRC4hxpfjBQ8DUqX7dbLlv1WYQF4u-/exec";
+const GAS_URL = "https://script.google.com/macros/s/AKfycbwgQo90eBaTr2hVTkXlkqTxGDJtgychINJHC4FUIXh-0zjVsQU88QtPu3ZlZGLNTsTH/exec";
 
 let currentSerial = "";
 
@@ -324,11 +324,7 @@ function showToast(msg) {
 }
 
 window.addEventListener("DOMContentLoaded", () => {
-  const s = new URLSearchParams(location.search).get("s");
-  if (s) {
-    document.getElementById("input-serial").value = s.toUpperCase();
-    searchSerial();
-  }
+  // URL 파라미터 자동조회 제거 — 항상 빈 입력창으로 시작
   document.getElementById("input-serial").addEventListener("keydown", e => {
     if (e.key === "Enter") searchSerial();
   });
