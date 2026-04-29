@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>ProofedBy — Get My Badge</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Mono:wght@400;500&family=Outfit:wght@300;400;500&display=swap" rel="stylesheet"/>
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --green-deep: #1B4332; --green-mid: #2D6A4F; --green-soft: #52B788;
+  --cream: #F8F5EF; --ink: #1A1A18; --muted: #6B6B5E;
+  --border: #DDD9CE; --white: #FFFFFF; --error: #C0392B;
+}
+html, body { min-height: 100vh; background: var(--cream); font-family: 'Outfit', sans-serif; color: var(--ink); }
+body::before {
+  content: ''; position: fixed; inset: 0; pointer-events: none; z-index: 0;
+  background-image: radial-gradient(circle at 20% 20%, rgba(82,183,136,0.08) 0%, transparent 50%),
+    radial-gradient(circle at 80% 80%, rgba(27,67,50,0.06) 0%, transparent 50%);
+}
+.page { position: relative; z-index: 1; min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 20px 20px; }
+.logo-area { text-align: center; margin-bottom: 24px; animation: fadeUp 0.6s ease both; }
+.logo-badge { width: 56px; height: 56px; background: var(--green-deep); border-radius: 50%; margin: 0 auto 16px; display: flex; align-items: center; justify-content: center; }
+.logo-badge svg { width: 28px; height: 28px; }
+.logo-title { font-family: 'DM Serif Display', serif; font-size: 28px; color: var(--green-deep); letter-spacing: -0.5px; }
+.logo-sub { font-size: 13px; color: var(--muted); margin-top: 4px; font-weight: 300; letter-spacing: 0.5px; }
+.card { background: var(--white); border: 1px solid var(--border); border-radius: 20px; width: 100%; max-width: 440px; padding: 40px; animation: fadeUp 0.6s ease 0.1s both; }
+.card-title { font-family: 'DM Serif Display', serif; font-size: 22px; color: var(--ink); margin-bottom: 6px; }
+.card-desc { font-size: 14px; color: var(--muted); font-weight: 300; line-height: 1.6; margin-bottom: 28px; }
+.field { margin-bottom: 16px; }
+label { display: block; font-size: 12px; font-weight: 500; color: var(--muted); letter-spacing: 0.8px; text-transform: uppercase; margin-bottom: 6px; }
+input[type="text"], input[type="email"] { width: 100%; padding: 13px 16px; border: 1px solid var(--border); border-radius: 10px; font-family: 'Outfit', sans-serif; font-size: 15px; color: var(--ink); background: var(--cream); outline: none; transition: border-color 0.2s, background 0.2s; }
+input:focus { border-color: var(--green-soft); background: var(--white); }
+.btn { width: 100%; padding: 15px; background: var(--green-deep); color: var(--white); border: none; border-radius: 10px; font-family: 'Outfit', sans-serif; font-size: 15px; font-weight: 500; cursor: pointer; margin-top: 8px; transition: background 0.2s, transform 0.1s; letter-spacing: 0.2px; }
+.btn:hover { background: var(--green-mid); }
+.btn:active { transform: scale(0.99); }
+.btn:disabled { opacity: 0.5; cursor: not-allowed; }
+.msg { font-size: 13px; padding: 12px 14px; border-radius: 8px; margin-top: 14px; display: none; line-height: 1.5; }
+.msg.error   { background: #FDF2F2; color: var(--error); border: 1px solid #F5C6C6; display: block; }
+.msg.loading { background: #F0F7F4; color: var(--green-mid); border: 1px solid #C3E6D8; display: block; }
+.result-card { display: none; background: var(--white); border: 1px solid var(--border); border-radius: 20px; width: 100%; max-width: 440px; padding: 40px; text-align: center; animation: fadeUp 0.5s ease both; }
+.result-card.show { display: block; }
+.badge-wrap { position: relative; width: 220px; height: 220px; margin: 0 auto 24px; }
+.badge-img { width: 220px; height: 220px; border-radius: 50%; object-fit: cover; border: 3px solid var(--border); }
+.verified-dot { position: absolute; bottom: 8px; right: 8px; width: 36px; height: 36px; background: var(--green-deep); border-radius: 50%; border: 3px solid var(--white); display: flex; align-items: center; justify-content: center; }
+.verified-dot svg { width: 16px; height: 16px; }
+.result-name    { font-family: 'DM Serif Display', serif; font-size: 22px; color: var(--ink); margin-bottom: 4px; }
+.result-serial  { font-family: 'DM Mono', monospace; font-size: 12px; color: var(--muted); letter-spacing: 2px; margin-bottom: 4px; }
+.result-vocation { font-size: 14px; color: var(--green-mid); font-weight: 500; margin-bottom: 24px; }
+.divider { height: 1px; background: var(--border); margin: 24px 0; }
+.dl-btn { display: inline-flex; align-items: center; gap: 8px; padding: 14px 28px; background: var(--green-deep); color: var(--white); border: none; border-radius: 10px; font-family: 'Outfit', sans-serif; font-size: 15px; font-weight: 500; cursor: pointer; text-decoration: none; transition: background 0.2s; width: 100%; justify-content: center; }
+.dl-btn:hover { background: var(--green-mid); }
+.dl-btn svg { width: 18px; height: 18px; flex-shrink: 0; }
+.share-row { display: flex; gap: 10px; margin-top: 12px; }
+.share-btn { flex: 1; padding: 11px; background: transparent; border: 1px solid var(--border); border-radius: 10px; font-family: 'Outfit', sans-serif; font-size: 13px; color: var(--muted); cursor: pointer; transition: border-color 0.2s, color 0.2s; }
+.share-btn:hover { border-color: var(--green-soft); color: var(--green-deep); }
+.back-link { display: block; text-align: center; margin-top: 16px; font-size: 13px; color: var(--muted); cursor: pointer; text-decoration: underline; }
+.back-link:hover { color: var(--ink); }
+.toast { position: fixed; bottom: 32px; left: 50%; transform: translateX(-50%) translateY(20px); background: var(--ink); color: var(--white); padding: 10px 20px; border-radius: 100px; font-size: 13px; opacity: 0; transition: opacity 0.3s, transform 0.3s; pointer-events: none; z-index: 100; }
+.toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+@keyframes fadeUp { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: translateY(0); } }
+@media (max-width: 480px) { .card, .result-card { padding: 28px 24px; } }
+</style>
+</head>
+<body>
+<div class="page">
+  <div class="logo-area">
+    <div class="logo-badge">
+      <svg viewBox="0 0 28 28" fill="none"><path d="M14 3L17.5 10.5L26 11.5L20 17.5L21.5 26L14 22L6.5 26L8 17.5L2 11.5L10.5 10.5L14 3Z" fill="white" stroke="white" stroke-width="1.5" stroke-linejoin="round"/></svg>
+    </div>
+    <div class="logo-title">ProofedBy</div>
+    <div class="logo-sub">Human Certification Badge</div>
+  </div>
+
+  <div class="card" id="form-card">
+    <div class="card-title">Get My Badge</div>
+    <div class="card-desc">Enter the name and email you used when applying<br/>to download your badge instantly.</div>
+    <div class="field">
+      <label>Legal Name</label>
+      <input type="text" id="input-name" placeholder="Name you entered when applying" autocomplete="name"/>
+    </div>
+    <div class="field">
+      <label>Email Address</label>
+      <input type="email" id="input-email" placeholder="Email you entered when applying" autocomplete="email"/>
+    </div>
+    <button class="btn" id="verify-btn" onclick="verifyUser()">Find My Badge</button>
+    <div class="msg" id="msg"></div>
+  </div>
+
+  <div class="result-card" id="result-card">
+    <div class="badge-wrap">
+      <img class="badge-img" id="badge-img" src="" alt="ProofedBy Badge"/>
+      <div class="verified-dot">
+        <svg viewBox="0 0 16 16" fill="none"><path d="M3 8L6.5 11.5L13 5" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </div>
+    </div>
+    <div class="result-name"     id="result-name"></div>
+    <div class="result-serial"   id="result-serial"></div>
+    <div class="result-vocation" id="result-vocation"></div>
+    <a class="dl-btn" id="dl-btn" href="#">
+      <svg viewBox="0 0 18 18" fill="none"><path d="M9 2V12M9 12L5.5 8.5M9 12L12.5 8.5" stroke="white" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><path d="M2 14H16" stroke="white" stroke-width="1.8" stroke-linecap="round"/></svg>
+      Download Badge Image
+    </a>
+    <div class="divider"></div>
+    <div class="share-row">
+      <button class="share-btn" onclick="copyLink()">Copy Link</button>
+      <button class="share-btn" onclick="copySerial()">Copy Serial</button>
+    </div>
+    <span class="back-link" onclick="goBack()">← Search again</span>
+  </div>
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+const GAS_URL = "https://script.google.com/macros/s/AKfycbyZs3xHXfj36xn7DRU1xNo_JpoAENqrk9MywGf1bgJ_7wmvK35C_GZ8RFMBNJbCq6kE/exec";
+
+let currentSerial = "";
+
+async function verifyUser() {
+  const name  = document.getElementById("input-name").value.trim();
+  const email = document.getElementById("input-email").value.trim().toLowerCase();
+  const btn   = document.getElementById("verify-btn");
+
+  if (!name || !email) {
+    showMsg("Please enter both your name and email.", "error");
+    return;
+  }
+
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    showMsg("Please enter a valid email address.", "error");
+    return;
+  }
+
+  btn.disabled = true;
+  showMsg("Looking up your badge...", "loading");
+
+  try {
+    const url = `${GAS_URL}?name=${encodeURIComponent(name)}&email=${encodeURIComponent(email)}`;
+    const res  = await fetch(url, { method: "GET", redirect: "follow" });
+    const text = await res.text();
+
+    if (!text || text.trim().startsWith("<")) {
+      showMsg("Server connection failed. Please try again later.", "error");
+      btn.disabled = false;
+      return;
+    }
+
+    let data;
+    try {
+      data = JSON.parse(text);
+    } catch (_) {
+      showMsg("Could not process the server response. Please try again.", "error");
+      btn.disabled = false;
+      return;
+    }
+
+    if (data.error) {
+      showMsg(`Error: ${data.error}`, "error");
+      btn.disabled = false;
+      return;
+    }
+
+    if (!data.found) {
+      showMsg("No matching record found.<br/>Please double-check your name and email.", "error");
+      btn.disabled = false;
+      return;
+    }
+
+    if (!data.imageUrl) {
+      showMsg("Your badge is still being generated (may take 10–30 seconds).<br/>Please try again shortly.", "error");
+      btn.disabled = false;
+      return;
+    }
+
+    showResult(data.name, data.serial, data.vocation, data.imageUrl);
+
+  } catch (e) {
+    showMsg("An error occurred. Please try again.", "error");
+    btn.disabled = false;
+  }
+}
+
+function showResult(name, serial, vocation, imgUrl) {
+  currentSerial = serial;
+
+  document.getElementById("badge-img").src               = imgUrl;
+  document.getElementById("result-name").textContent     = name;
+  document.getElementById("result-serial").textContent   = serial;
+  document.getElementById("result-vocation").textContent = vocation || "";
+
+  document.getElementById("dl-btn").onclick = async (e) => {
+    e.preventDefault();
+    try {
+      const r    = await fetch(imgUrl);
+      const blob = await r.blob();
+      const a    = document.createElement("a");
+      a.href     = URL.createObjectURL(blob);
+      a.download = `ProofedBy_${serial}.png`;
+      a.click();
+      URL.revokeObjectURL(a.href);
+    } catch {
+      window.open(imgUrl, "_blank");
+    }
+  };
+
+  document.getElementById("form-card").style.display = "none";
+  document.getElementById("result-card").classList.add("show");
+}
+
+function goBack() {
+  document.getElementById("result-card").classList.remove("show");
+  document.getElementById("form-card").style.display = "block";
+  document.getElementById("verify-btn").disabled = false;
+  document.getElementById("msg").className = "msg";
+  currentSerial = "";
+}
+
+function showMsg(text, type) {
+  const el = document.getElementById("msg");
+  el.innerHTML = text;
+  el.className = `msg ${type}`;
+}
+
+function copyLink() {
+  const url = `${location.origin}${location.pathname}?s=${encodeURIComponent(currentSerial)}`;
+  navigator.clipboard.writeText(url).then(() => showToast("Link copied!"));
+}
+
+function copySerial() {
+  navigator.clipboard.writeText(currentSerial)
+    .then(() => showToast("Serial number copied!"));
+}
+
+function showToast(msg) {
+  const t = document.getElementById("toast");
+  t.textContent = msg;
+  t.classList.add("show");
+  setTimeout(() => t.classList.remove("show"), 2500);
+}
+
+window.addEventListener("DOMContentLoaded", () => {
+  ["input-name", "input-email"].forEach((id) => {
+    document.getElementById(id).addEventListener("keydown", (e) => {
+      if (e.key === "Enter") verifyUser();
+    });
+  });
+});
+</script>
+</body>
+</html>
