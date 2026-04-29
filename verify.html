@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="ko">
+<html lang="en">
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-<title>ProofedBy — 인증 확인</title>
+<title>ProofedBy — Verify Certification</title>
 <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Mono:wght@400;500&family=Outfit:wght@300;400;500&display=swap" rel="stylesheet"/>
 <style>
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -95,19 +95,19 @@ input:focus { border-color: var(--green-soft); background: var(--white); }
     <div class="logo-sub">Human Certification Verification</div>
   </div>
 
-  <!-- 검색 카드 -->
+  <!-- Search Card -->
   <div class="card" id="search-card">
-    <div class="card-title">인증 번호 조회</div>
-    <div class="card-desc">시리얼 번호를 입력하면 해당 인증의<br/>서약 내용과 등록 일시를 확인할 수 있습니다.</div>
+    <div class="card-title">Verify Certification</div>
+    <div class="card-desc">Enter a serial number to view the certification details,<br/>oath statements, and registration date.</div>
     <div class="field">
       <label>Serial Number</label>
-      <input type="text" id="input-serial" placeholder="예: WR-019" maxlength="20"/>
+      <input type="text" id="input-serial" placeholder="e.g. WR-019" maxlength="20"/>
     </div>
-    <button class="btn" id="search-btn" onclick="searchSerial()">조회하기</button>
+    <button class="btn" id="search-btn" onclick="searchSerial()">Verify</button>
     <div class="msg" id="msg"></div>
   </div>
 
-  <!-- 결과 카드 -->
+  <!-- Result Card -->
   <div class="result-card" id="result-card">
     <div class="badge-header">
       <div class="badge-img-wrap">
@@ -127,13 +127,13 @@ input:focus { border-color: var(--green-soft); background: var(--white); }
       </div>
     </div>
 
-    <div class="section-title">인증 정보</div>
+    <div class="section-title">Certification Info</div>
     <div class="info-row">
-      <span class="info-label">신청 일시</span>
+      <span class="info-label">Registered</span>
       <span class="info-value" id="res-date"></span>
     </div>
     <div class="info-row">
-      <span class="info-label">인증 상태</span>
+      <span class="info-label">Status</span>
       <span class="info-value" id="res-status"></span>
     </div>
 
@@ -147,85 +147,80 @@ input:focus { border-color: var(--green-soft); background: var(--white); }
     <div class="report-section">
       <button class="report-toggle" onclick="toggleReport()">
         <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="8" r="6.5"/><path d="M8 5v3M8 11v.5"/></svg>
-        이 인증에 문제를 발견하셨나요? 리포트하기
+        Found an issue with this certification? Report it
       </button>
       <div class="report-form" id="report-form">
         <select id="report-reason">
-          <option value="">문제 유형을 선택해주세요</option>
-          <option value="not_human">실제 인간이 아닌 것으로 의심됨</option>
-          <option value="ai_content">AI 생성 콘텐츠를 인간 창작물로 위장</option>
-          <option value="impersonation">타인 사칭</option>
-          <option value="false_oath">서약 내용을 위반한 행위 확인</option>
-          <option value="other">기타</option>
+          <option value="">Select a reason</option>
+          <option value="not_human">Suspected to not be a biological human</option>
+          <option value="ai_content">Using AI-generated content as human creation</option>
+          <option value="impersonation">Impersonating another person</option>
+          <option value="false_oath">Violating the terms of the Human Oath</option>
+          <option value="other">Other</option>
         </select>
-        <textarea id="report-detail" placeholder="구체적인 내용을 입력해주세요 (선택사항)"></textarea>
-        <button class="report-btn" id="report-btn" onclick="submitReport()">리포트 제출</button>
-        <div class="report-success" id="report-success">리포트가 접수되었습니다. 검토 후 조치하겠습니다.</div>
+        <textarea id="report-detail" placeholder="Please describe the issue in detail (optional)"></textarea>
+        <button class="report-btn" id="report-btn" onclick="submitReport()">Submit Report</button>
+        <div class="report-success" id="report-success">Your report has been submitted. We will review it shortly.</div>
       </div>
     </div>
 
-    <span class="back-link" onclick="goBack()">← 다른 번호 조회하기</span>
+    <span class="back-link" onclick="goBack()">← Search another serial number</span>
   </div>
 </div>
 <div class="toast" id="toast"></div>
 
 <script>
-// ★ Apps Script 배포 URL — 배지 조회(index.html)과 동일한 URL 사용 가능
 const GAS_URL = "https://script.google.com/macros/s/AKfycbwU_GMSghr6yjd5aTTAJmQrRR2GOEevWOmeG_hRC4hxpfjBQ8DUqX7dbLlv1WYQF4u-/exec";
 
 let currentSerial = "";
 
-// -------------------------------------------------------
-//  시리얼 조회
-// -------------------------------------------------------
 async function searchSerial() {
   const serial = document.getElementById("input-serial").value.trim().toUpperCase();
   const btn    = document.getElementById("search-btn");
 
-  if (!serial) { showMsg("시리얼 번호를 입력해주세요.", "error"); return; }
+  if (!serial) { showMsg("Please enter a serial number.", "error"); return; }
 
   btn.disabled = true;
-  showMsg("조회 중입니다...", "loading");
+  showMsg("Looking up certification...", "loading");
 
   try {
     const url  = `${GAS_URL}?action=verify&serial=${encodeURIComponent(serial)}`;
     const res  = await fetch(url, { method: "GET", redirect: "follow" });
     const text = await res.text();
 
-    // HTML이 돌아오면 서버 오류
     if (!text || text.trim().startsWith("<")) {
-      showMsg("서버 연결에 실패했습니다. 잠시 후 다시 시도해주세요.", "error");
+      showMsg("Server connection failed. Please try again later.", "error");
       btn.disabled = false; return;
     }
 
     let data;
     try { data = JSON.parse(text); }
     catch (e) {
-      showMsg("응답 처리 오류: " + text.substring(0, 100), "error");
+      showMsg("Response error: " + text.substring(0, 100), "error");
       btn.disabled = false; return;
     }
 
     if (data.error) {
-      showMsg("오류: " + data.error, "error");
+      showMsg("Error: " + data.error, "error");
       btn.disabled = false; return;
     }
 
     if (!data.found) {
-      showMsg("해당 시리얼 번호를 찾을 수 없습니다.<br/>번호를 다시 확인해주세요.", "error");
+      showMsg("No certification found for this serial number.<br/>Please double-check and try again.", "error");
       btn.disabled = false; return;
     }
+
+    // ★ 디버그: oath 원본값 콘솔 출력 (확인 후 제거 가능)
+    if (data.oathRaw) console.log("Oath raw values:", data.oathRaw);
 
     showResult(data);
 
   } catch(e) {
-    showMsg("조회 중 오류: " + e.message, "error");
+    showMsg("Error: " + e.message, "error");
     btn.disabled = false;
   }
 }
 
-// -------------------------------------------------------
-//  결과 표시
-// -------------------------------------------------------
 function showResult(d) {
   currentSerial = d.serial;
 
@@ -256,15 +251,14 @@ function showResult(d) {
       oathList.appendChild(div);
     });
   } else {
-    oathList.innerHTML = '<p style="font-size:13px;color:var(--muted);padding:10px 0;">서약 정보가 없습니다.</p>';
+    oathList.innerHTML = '<p style="font-size:13px;color:var(--muted);padding:10px 0;">No oath information available.</p>';
   }
 
-  // 리포트 초기화
   document.getElementById("report-form").classList.remove("open");
   document.getElementById("report-success").classList.remove("show");
   document.getElementById("report-btn").style.display = "block";
   document.getElementById("report-btn").disabled = false;
-  document.getElementById("report-btn").textContent = "리포트 제출";
+  document.getElementById("report-btn").textContent = "Submit Report";
   document.getElementById("report-reason").value = "";
   document.getElementById("report-detail").value = "";
 
@@ -272,9 +266,6 @@ function showResult(d) {
   document.getElementById("result-card").classList.add("show");
 }
 
-// -------------------------------------------------------
-//  리포트
-// -------------------------------------------------------
 function toggleReport() {
   document.getElementById("report-form").classList.toggle("open");
 }
@@ -284,10 +275,10 @@ async function submitReport() {
   const detail = document.getElementById("report-detail").value.trim();
   const btn    = document.getElementById("report-btn");
 
-  if (!reason) { showToast("문제 유형을 선택해주세요."); return; }
+  if (!reason) { showToast("Please select a reason."); return; }
 
   btn.disabled = true;
-  btn.textContent = "제출 중...";
+  btn.textContent = "Submitting...";
 
   try {
     const url  = `${GAS_URL}?action=report&serial=${encodeURIComponent(currentSerial)}&reason=${encodeURIComponent(reason)}&detail=${encodeURIComponent(detail)}`;
@@ -299,20 +290,17 @@ async function submitReport() {
       document.getElementById("report-success").classList.add("show");
       btn.style.display = "none";
     } else {
-      showToast("오류: " + (data.error || "다시 시도해주세요."));
+      showToast("Error: " + (data.error || "Please try again."));
       btn.disabled = false;
-      btn.textContent = "리포트 제출";
+      btn.textContent = "Submit Report";
     }
   } catch(e) {
-    showToast("제출 중 오류가 발생했습니다.");
+    showToast("Submission failed. Please try again.");
     btn.disabled = false;
-    btn.textContent = "리포트 제출";
+    btn.textContent = "Submit Report";
   }
 }
 
-// -------------------------------------------------------
-//  유틸
-// -------------------------------------------------------
 function goBack() {
   document.getElementById("result-card").classList.remove("show");
   document.getElementById("search-card").style.display = "block";
