@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="ko">
+<html lang="en">
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-<title>ProofedBy — 내 배지 받기</title>
+<title>ProofedBy — Get My Badge</title>
 <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Mono:wght@400;500&family=Outfit:wght@300;400;500&display=swap" rel="stylesheet"/>
 <style>
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -73,17 +73,17 @@ input:focus { border-color: var(--green-soft); background: var(--white); }
   </div>
 
   <div class="card" id="form-card">
-    <div class="card-title">내 배지 받기</div>
-    <div class="card-desc">신청 시 입력한 이름과 이메일을 입력하면<br/>배지를 바로 다운로드할 수 있습니다.</div>
+    <div class="card-title">Get My Badge</div>
+    <div class="card-desc">Enter the name and email you used when applying<br/>to download your badge instantly.</div>
     <div class="field">
       <label>Legal Name</label>
-      <input type="text" id="input-name" placeholder="신청 시 입력한 이름" autocomplete="name"/>
+      <input type="text" id="input-name" placeholder="Name you entered when applying" autocomplete="name"/>
     </div>
     <div class="field">
       <label>Email Address</label>
-      <input type="email" id="input-email" placeholder="신청 시 입력한 이메일" autocomplete="email"/>
+      <input type="email" id="input-email" placeholder="Email you entered when applying" autocomplete="email"/>
     </div>
-    <button class="btn" id="verify-btn" onclick="verifyUser()">배지 확인하기</button>
+    <button class="btn" id="verify-btn" onclick="verifyUser()">Find My Badge</button>
     <div class="msg" id="msg"></div>
   </div>
 
@@ -99,67 +99,48 @@ input:focus { border-color: var(--green-soft); background: var(--white); }
     <div class="result-vocation" id="result-vocation"></div>
     <a class="dl-btn" id="dl-btn" href="#">
       <svg viewBox="0 0 18 18" fill="none"><path d="M9 2V12M9 12L5.5 8.5M9 12L12.5 8.5" stroke="white" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><path d="M2 14H16" stroke="white" stroke-width="1.8" stroke-linecap="round"/></svg>
-      배지 이미지 다운로드
+      Download Badge Image
     </a>
     <div class="divider"></div>
     <div class="share-row">
-      <button class="share-btn" onclick="copyLink()">링크 복사</button>
-      <button class="share-btn" onclick="copySerial()">시리얼 복사</button>
+      <button class="share-btn" onclick="copyLink()">Copy Link</button>
+      <button class="share-btn" onclick="copySerial()">Copy Serial</button>
     </div>
-    <span class="back-link" onclick="goBack()">← 다시 조회하기</span>
+    <span class="back-link" onclick="goBack()">← Search again</span>
   </div>
 </div>
 <div class="toast" id="toast"></div>
 
 <script>
-// ★ Google Apps Script 웹앱 배포 후 URL을 여기에 입력하세요
 const GAS_URL = "https://script.google.com/macros/s/AKfycbxq7lHYR6tbTxL9myc9KD-Db7frPD8JdVTivrV_KikOR2nIZ8wAuBid97qy4gedFP-I/exec";
 
 let currentSerial = "";
 
-// -------------------------------------------------------
-//  배지 조회 메인 함수
-// -------------------------------------------------------
 async function verifyUser() {
-  // GAS_URL 미설정 체크
-  if (!GAS_URL || GAS_URL.includes("여기에")) {
-    showMsg("서비스 준비 중입니다. 잠시 후 다시 시도해주세요.", "error");
-    return;
-  }
-
   const name  = document.getElementById("input-name").value.trim();
   const email = document.getElementById("input-email").value.trim().toLowerCase();
   const btn   = document.getElementById("verify-btn");
 
   if (!name || !email) {
-    showMsg("이름과 이메일을 모두 입력해주세요.", "error");
+    showMsg("Please enter both your name and email.", "error");
     return;
   }
 
-  // 이메일 형식 간단 검증
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-    showMsg("올바른 이메일 형식을 입력해주세요.", "error");
+    showMsg("Please enter a valid email address.", "error");
     return;
   }
 
   btn.disabled = true;
-  showMsg("확인 중입니다...", "loading");
+  showMsg("Looking up your badge...", "loading");
 
   try {
     const url = `${GAS_URL}?name=${encodeURIComponent(name)}&email=${encodeURIComponent(email)}`;
-    const res  = await fetch(url, {
-      method: "GET",
-      redirect: "follow",
-    });
-
+    const res  = await fetch(url, { method: "GET", redirect: "follow" });
     const text = await res.text();
 
-    // 서버가 HTML을 반환한 경우 (404, 에러 페이지 등) 방어
     if (!text || text.trim().startsWith("<")) {
-      showMsg(
-        "서버 연결에 실패했습니다. (응답 오류)<br/>잠시 후 다시 시도해주세요.",
-        "error"
-      );
+      showMsg("Server connection failed. Please try again later.", "error");
       btn.disabled = false;
       return;
     }
@@ -168,34 +149,25 @@ async function verifyUser() {
     try {
       data = JSON.parse(text);
     } catch (_) {
-      showMsg(
-        "서버 응답을 처리할 수 없습니다.<br/>잠시 후 다시 시도해주세요.",
-        "error"
-      );
+      showMsg("Could not process the server response. Please try again.", "error");
       btn.disabled = false;
       return;
     }
 
     if (data.error) {
-      showMsg(`오류: ${data.error}`, "error");
+      showMsg(`Error: ${data.error}`, "error");
       btn.disabled = false;
       return;
     }
 
     if (!data.found) {
-      showMsg(
-        "일치하는 정보를 찾을 수 없습니다.<br/>이름과 이메일을 다시 확인해주세요.",
-        "error"
-      );
+      showMsg("No matching record found.<br/>Please double-check your name and email.", "error");
       btn.disabled = false;
       return;
     }
 
     if (!data.imageUrl) {
-      showMsg(
-        "배지가 아직 생성 중입니다. (약 10~30초 소요)<br/>잠시 후 다시 시도해주세요.",
-        "error"
-      );
+      showMsg("Your badge is still being generated (may take 10–30 seconds).<br/>Please try again shortly.", "error");
       btn.disabled = false;
       return;
     }
@@ -203,18 +175,11 @@ async function verifyUser() {
     showResult(data.name, data.serial, data.vocation, data.imageUrl);
 
   } catch (e) {
-    console.error("조회 오류:", e);
-    showMsg(
-      "조회 중 오류가 발생했습니다.<br/>잠시 후 다시 시도해주세요.",
-      "error"
-    );
+    showMsg("An error occurred. Please try again.", "error");
     btn.disabled = false;
   }
 }
 
-// -------------------------------------------------------
-//  결과 카드 표시
-// -------------------------------------------------------
 function showResult(name, serial, vocation, imgUrl) {
   currentSerial = serial;
 
@@ -234,7 +199,6 @@ function showResult(name, serial, vocation, imgUrl) {
       a.click();
       URL.revokeObjectURL(a.href);
     } catch {
-      // CORS 등으로 fetch 실패 시 새 탭으로 열기
       window.open(imgUrl, "_blank");
     }
   };
@@ -243,9 +207,6 @@ function showResult(name, serial, vocation, imgUrl) {
   document.getElementById("result-card").classList.add("show");
 }
 
-// -------------------------------------------------------
-//  뒤로 가기
-// -------------------------------------------------------
 function goBack() {
   document.getElementById("result-card").classList.remove("show");
   document.getElementById("form-card").style.display = "block";
@@ -254,31 +215,22 @@ function goBack() {
   currentSerial = "";
 }
 
-// -------------------------------------------------------
-//  메시지 표시
-// -------------------------------------------------------
 function showMsg(text, type) {
-  const el      = document.getElementById("msg");
-  el.innerHTML  = text;
-  el.className  = `msg ${type}`;
+  const el = document.getElementById("msg");
+  el.innerHTML = text;
+  el.className = `msg ${type}`;
 }
 
-// -------------------------------------------------------
-//  클립보드 공유
-// -------------------------------------------------------
 function copyLink() {
   const url = `${location.origin}${location.pathname}?s=${encodeURIComponent(currentSerial)}`;
-  navigator.clipboard.writeText(url).then(() => showToast("링크가 복사되었습니다"));
+  navigator.clipboard.writeText(url).then(() => showToast("Link copied!"));
 }
 
 function copySerial() {
   navigator.clipboard.writeText(currentSerial)
-    .then(() => showToast("시리얼 번호가 복사되었습니다"));
+    .then(() => showToast("Serial number copied!"));
 }
 
-// -------------------------------------------------------
-//  토스트
-// -------------------------------------------------------
 function showToast(msg) {
   const t = document.getElementById("toast");
   t.textContent = msg;
@@ -286,14 +238,7 @@ function showToast(msg) {
   setTimeout(() => t.classList.remove("show"), 2500);
 }
 
-// -------------------------------------------------------
-//  페이지 로드 시 URL 파라미터 처리
-// -------------------------------------------------------
 window.addEventListener("DOMContentLoaded", () => {
-  const s = new URLSearchParams(location.search).get("s");
-  if (s) showToast("이름과 이메일을 입력하면 배지를 확인할 수 있습니다");
-
-  // Enter 키로 제출
   ["input-name", "input-email"].forEach((id) => {
     document.getElementById(id).addEventListener("keydown", (e) => {
       if (e.key === "Enter") verifyUser();
