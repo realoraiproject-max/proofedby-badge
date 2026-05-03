@@ -25,21 +25,21 @@ body::before {
   display: flex; flex-direction: column; align-items: center;
   justify-content: flex-start; padding: 20px 20px;
 }
-.logo-area { text-align: center; margin-bottom: 14px; animation: fadeUp 0.6s ease both; }
-.logo-badge { width: 48px; height: 48px; background: var(--green-deep); border-radius: 50%; margin: 0 auto 10px; display: flex; align-items: center; justify-content: center; }
-.logo-badge svg { width: 24px; height: 24px; }
-.logo-title { font-family: 'DM Serif Display', serif; font-size: 24px; color: var(--green-deep); letter-spacing: -0.5px; }
-.logo-sub { font-size: 12px; color: var(--muted); margin-top: 2px; font-weight: 300; letter-spacing: 0.5px; }
+.logo-area { text-align: center; margin-bottom: 24px; animation: fadeUp 0.6s ease both; }
+.logo-badge { width: 56px; height: 56px; background: var(--green-deep); border-radius: 50%; margin: 0 auto 16px; display: flex; align-items: center; justify-content: center; }
+.logo-badge svg { width: 28px; height: 28px; }
+.logo-title { font-family: 'DM Serif Display', serif; font-size: 28px; color: var(--green-deep); letter-spacing: -0.5px; }
+.logo-sub { font-size: 13px; color: var(--muted); margin-top: 4px; font-weight: 300; letter-spacing: 0.5px; }
 
 /* Search card */
-.card { background: var(--white); border: 1px solid var(--border); border-radius: 20px; width: 100%; max-width: 480px; padding: 24px 20px; animation: fadeUp 0.6s ease 0.1s both; }
-.card-title { font-family: 'DM Serif Display', serif; font-size: 20px; color: var(--ink); margin-bottom: 4px; }
-.card-desc { font-size: 13px; color: var(--muted); font-weight: 300; line-height: 1.5; margin-bottom: 18px; }
-.field { margin-bottom: 12px; }
-label { display: block; font-size: 11px; font-weight: 500; color: var(--muted); letter-spacing: 0.8px; text-transform: uppercase; margin-bottom: 4px; }
-input[type="text"] { width: 100%; padding: 11px 14px; border: 1px solid var(--border); border-radius: 10px; font-family: 'DM Mono', monospace; font-size: 15px; color: var(--ink); background: var(--cream); outline: none; transition: border-color 0.2s, background 0.2s; letter-spacing: 1px; text-transform: uppercase; }
+.card { background: var(--white); border: 1px solid var(--border); border-radius: 20px; width: 100%; max-width: 440px; padding: 40px; animation: fadeUp 0.6s ease 0.1s both; }
+.card-title { font-family: 'DM Serif Display', serif; font-size: 22px; color: var(--ink); margin-bottom: 6px; }
+.card-desc { font-size: 14px; color: var(--muted); font-weight: 300; line-height: 1.6; margin-bottom: 28px; }
+.field { margin-bottom: 16px; }
+label { display: block; font-size: 12px; font-weight: 500; color: var(--muted); letter-spacing: 0.8px; text-transform: uppercase; margin-bottom: 6px; }
+input[type="text"] { width: 100%; padding: 13px 16px; border: 1px solid var(--border); border-radius: 10px; font-family: 'DM Mono', monospace; font-size: 15px; color: var(--ink); background: var(--cream); outline: none; transition: border-color 0.2s, background 0.2s; letter-spacing: 1px; text-transform: uppercase; }
 input:focus { border-color: var(--green-soft); background: var(--white); }
-.btn { width: 100%; padding: 13px; background: var(--green-deep); color: var(--white); border: none; border-radius: 10px; font-family: 'Outfit', sans-serif; font-size: 15px; font-weight: 500; cursor: pointer; margin-top: 6px; transition: background 0.2s, transform 0.1s; }
+.btn { width: 100%; padding: 15px; background: var(--green-deep); color: var(--white); border: none; border-radius: 10px; font-family: 'Outfit', sans-serif; font-size: 15px; font-weight: 500; cursor: pointer; margin-top: 8px; transition: background 0.2s, transform 0.1s; }
 .btn:hover { background: var(--green-mid); }
 .btn:active { transform: scale(0.99); }
 .btn:disabled { opacity: 0.5; cursor: not-allowed; }
@@ -48,7 +48,7 @@ input:focus { border-color: var(--green-soft); background: var(--white); }
 .msg.loading { background: #F0F7F4; color: var(--green-mid); border: 1px solid #C3E6D8; display: block; }
 
 /* Result card */
-.result-card { display: none; background: var(--white); border: 1px solid var(--border); border-radius: 20px; width: 100%; max-width: 480px; padding: 40px; animation: fadeUp 0.5s ease both; }
+.result-card { display: none; background: var(--white); border: 1px solid var(--border); border-radius: 20px; width: 100%; max-width: 440px; padding: 40px; animation: fadeUp 0.5s ease both; }
 .result-card.show { display: block; }
 
 /* ── 배지 헤더: 이미지 크게 (80→110px), 세로 중앙 정렬 ── */
@@ -115,19 +115,9 @@ input:focus { border-color: var(--green-soft); background: var(--white); }
 .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
 @keyframes fadeUp { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: translateY(0); } }
 @media (max-width: 480px) {
-  .page { padding: 12px 14px; }
-  .logo-area { margin-bottom: 10px; }
-  .card, .result-card { padding: 18px 16px; }
-  .card-desc { margin-bottom: 14px; }
-  .badge-header { gap: 16px; margin-bottom: 10px; padding-bottom: 10px; }
-  .badge-img { width: 80px; height: 80px; }
-  .badge-img-placeholder { width: 80px; height: 80px; }
-  .badge-img-wrap { flex-shrink: 0; }
-  .badge-name { font-size: 17px; }
-  .info-inline { gap: 10px; padding-bottom: 6px; }
-  .divider { margin: 8px 0; }
-  .section-title { margin-bottom: 4px; }
-  .oath-item { padding: 8px 0; }
+  .card, .result-card { padding: 28px 20px; }
+  .badge-header { flex-direction: column; align-items: flex-start; }
+  .info-inline { gap: 14px; }
 }
 </style>
 </head>
@@ -147,7 +137,7 @@ input:focus { border-color: var(--green-soft); background: var(--white); }
     <div class="card-desc">Enter a serial number to view the certification details,<br/>oath statements, and registration date.</div>
     <div class="field">
       <label>Serial Number</label>
-      <input type="text" id="input-serial" placeholder="e.g. WR-000" maxlength="20"/>
+      <input type="text" id="input-serial" placeholder="e.g. WR-019" maxlength="20"/>
     </div>
     <button class="btn" id="search-btn" onclick="searchSerial()">Verify</button>
     <div class="msg" id="msg"></div>
