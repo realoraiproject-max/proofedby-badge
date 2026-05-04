@@ -1,0 +1,892 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI Nutrition Label Calculator</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Barlow:wght@300;400;500;600;700;900&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #F4F2EE;
+  --surface: #FFFFFF;
+  --surface2: #ECEAE5;
+  --ink: #1A1814;
+  --ink2: #6B6760;
+  --ink3: #9E9B96;
+  --border: #D8D5CF;
+  --border2: #C4C1BB;
+
+  --accent: #1A1814;
+  --green: #1B6B3A;
+  --green-bg: #E6F4EC;
+  --green-border: #A8D5BA;
+  --yellow: #8B5E00;
+  --yellow-bg: #FEF3D0;
+  --yellow-border: #F0C84A;
+  --red: #8B1A1A;
+  --red-bg: #FDEAEA;
+  --red-border: #E08080;
+
+  --cat-video:   #2563EB;
+  --cat-audio:   #059669;
+  --cat-visual:  #D97706;
+  --cat-text:    #7C3AED;
+  --cat-inter:   #DC2626;
+  --cat-info:    #0891B2;
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+html { scroll-behavior: smooth; }
+
+body {
+  background: var(--bg);
+  color: var(--ink);
+  font-family: 'Barlow', sans-serif;
+  font-size: 14px;
+  line-height: 1.5;
+  min-height: 100vh;
+}
+
+/* ═══ LAYOUT ═══ */
+.shell { max-width: 860px; margin: 0 auto; padding: 36px 18px 64px; }
+
+/* ═══ HEADER ═══ */
+.hd {
+  border-bottom: 2px solid var(--ink);
+  padding-bottom: 20px;
+  margin-bottom: 28px;
+  display: flex; flex-direction: column; gap: 6px;
+}
+.hd-label {
+  font-family: 'Space Mono', monospace;
+  font-size: 10px; letter-spacing: 0.18em;
+  text-transform: uppercase; color: var(--ink3);
+  display: flex; align-items: center; gap: 8px;
+}
+.hd-label::before { content:''; width:20px; height:1px; background:var(--ink3); }
+.hd h1 {
+  font-size: clamp(22px, 4vw, 34px);
+  font-weight: 900; letter-spacing: -0.03em; line-height: 1.05;
+  color: var(--ink);
+}
+.hd-sub {
+  font-size: 12px; color: var(--ink2); max-width: 540px; line-height: 1.65;
+  font-weight: 400;
+}
+
+/* ═══ SCORE PANEL ═══ */
+.score-panel {
+  position: sticky; top: 0; z-index: 50;
+  background: var(--ink);
+  border-radius: 12px;
+  padding: 14px 18px;
+  margin-bottom: 24px;
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 12px; flex-wrap: wrap;
+  box-shadow: 0 4px 24px rgba(0,0,0,0.15);
+  transition: background .4s;
+}
+.score-panel.label-green  { background: #0D4A26; }
+.score-panel.label-yellow { background: #5C3D00; }
+.score-panel.label-red    { background: #5C0F0F; }
+
+.score-left { display: flex; flex-direction: column; gap: 2px; }
+.score-title { font-family: 'Space Mono', monospace; font-size: 9px; letter-spacing: 0.15em; color: rgba(255,255,255,0.4); text-transform: uppercase; }
+.score-label { font-size: 16px; font-weight: 700; color: #fff; display: flex; align-items: center; gap: 8px; }
+.score-label .sl-val {
+  font-family: 'Space Mono', monospace;
+  font-size: 28px; font-weight: 700; color: #fff; line-height: 1;
+}
+.score-bar-wrap { flex: 1; min-width: 160px; }
+.score-bar-track {
+  height: 6px; background: rgba(255,255,255,0.15); border-radius: 3px; overflow: hidden;
+}
+.score-bar-fill {
+  height: 100%; border-radius: 3px;
+  background: #fff; width: 0%;
+  transition: width .5s cubic-bezier(.4,0,.2,1), background .4s;
+}
+.score-panel.label-green  .score-bar-fill { background: #4ADE80; }
+.score-panel.label-yellow .score-bar-fill { background: #FCD34D; }
+.score-panel.label-red    .score-bar-fill { background: #F87171; }
+
+.score-right { display: flex; align-items: center; gap: 8px; }
+.reset-btn {
+  font-family: 'Space Mono', monospace;
+  font-size: 10px; padding: 6px 12px;
+  border-radius: 20px;
+  border: 1px solid rgba(255,255,255,0.25);
+  background: transparent; color: rgba(255,255,255,0.6);
+  cursor: pointer; letter-spacing: 0.08em;
+  transition: all .15s;
+}
+.reset-btn:hover { border-color: #fff; color: #fff; }
+
+/* ═══ STEP 1: Category ═══ */
+.step-label {
+  font-family: 'Space Mono', monospace;
+  font-size: 10px; letter-spacing: 0.15em; text-transform: uppercase;
+  color: var(--ink3); margin-bottom: 10px;
+  display: flex; align-items: center; gap: 8px;
+}
+.step-label .sn {
+  background: var(--ink); color: #fff;
+  border-radius: 50%; width: 18px; height: 18px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 9px;
+}
+
+.cat-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px; margin-bottom: 28px;
+}
+.cat-btn {
+  border: 1.5px solid var(--border);
+  background: var(--surface);
+  border-radius: 10px;
+  padding: 12px 10px;
+  cursor: pointer;
+  transition: all .15s;
+  display: flex; flex-direction: column; align-items: center; gap: 5px;
+  text-align: center;
+}
+.cat-btn:hover { border-color: var(--border2); transform: translateY(-1px); }
+.cat-btn.active { border-width: 2px; }
+.cat-btn.active[data-cat="video"]   { border-color: var(--cat-video);  background: #EFF6FF; }
+.cat-btn.active[data-cat="audio"]   { border-color: var(--cat-audio);  background: #ECFDF5; }
+.cat-btn.active[data-cat="visual"]  { border-color: var(--cat-visual); background: #FFFBEB; }
+.cat-btn.active[data-cat="text"]    { border-color: var(--cat-text);   background: #F5F3FF; }
+.cat-btn.active[data-cat="interact"]{ border-color: var(--cat-inter);  background: #FEF2F2; }
+.cat-btn.active[data-cat="info"]    { border-color: var(--cat-info);   background: #ECFEFF; }
+.cat-icon { font-size: 22px; line-height: 1; }
+.cat-name { font-size: 11px; font-weight: 600; color: var(--ink); line-height: 1.2; }
+
+/* ═══ STEP 2: Sub-type ═══ */
+.sub-section { margin-bottom: 28px; display: none; }
+.sub-section.visible { display: block; animation: slideIn .2s ease; }
+@keyframes slideIn { from { opacity:0; transform:translateY(6px); } to { opacity:1; transform:translateY(0); } }
+
+.sub-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 8px; margin-bottom: 8px;
+}
+.sub-btn {
+  border: 1.5px solid var(--border);
+  background: var(--surface);
+  border-radius: 10px;
+  padding: 10px 12px;
+  cursor: pointer;
+  transition: all .15s;
+  display: flex; align-items: center; gap: 8px;
+  text-align: left;
+}
+.sub-btn:hover { border-color: var(--border2); }
+.sub-btn.active { border-color: var(--ink); background: var(--ink); }
+.sub-btn.active .sub-btn-name { color: #fff; }
+.sub-btn.active .sub-btn-icon { filter: brightness(10); }
+.sub-btn-icon { font-size: 18px; flex-shrink: 0; }
+.sub-btn-name { font-size: 12px; font-weight: 600; color: var(--ink); line-height: 1.3; }
+
+/* ═══ STEP 3: Elements ═══ */
+.elem-section { margin-bottom: 28px; display: none; }
+.elem-section.visible { display: block; animation: slideIn .2s ease; }
+
+.elem-desc {
+  font-size: 12px; color: var(--ink2); margin-bottom: 14px; line-height: 1.65;
+  padding: 10px 14px; background: var(--surface); border-radius: 8px;
+  border-left: 3px solid var(--border2);
+}
+
+.elem-list-ui { display: flex; flex-direction: column; gap: 6px; }
+
+.elem-row {
+  background: var(--surface);
+  border: 1.5px solid var(--border);
+  border-radius: 10px;
+  overflow: hidden;
+  transition: border-color .15s;
+}
+.elem-row:hover { border-color: var(--border2); }
+
+.elem-row-header {
+  display: flex; align-items: center; gap: 0;
+}
+
+.elem-row-info {
+  flex: 1; display: flex; align-items: center; gap: 10px;
+  padding: 10px 12px;
+}
+.elem-emoji { font-size: 16px; flex-shrink: 0; }
+.elem-name-block { flex: 1; }
+.elem-name { font-size: 12px; font-weight: 600; color: var(--ink); }
+.elem-weight {
+  font-family: 'Space Mono', monospace;
+  font-size: 9px; color: var(--ink3);
+  margin-top: 1px;
+}
+.elem-core-tag {
+  font-family: 'Space Mono', monospace;
+  font-size: 8px; padding: 2px 6px; border-radius: 8px;
+  background: #FEF3D0; color: #8B5E00; border: 1px solid #F0C84A;
+  flex-shrink: 0;
+}
+
+.elem-options { display: flex; border-left: 1.5px solid var(--border); }
+.elem-opt {
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 2px;
+  width: 72px; padding: 8px 4px;
+  cursor: pointer; transition: background .12s;
+  border-right: 1px solid var(--border);
+  font-size: 10px; font-weight: 500; color: var(--ink3);
+  background: var(--surface);
+  border: none; outline: none;
+  font-family: 'Barlow', sans-serif;
+}
+.elem-opt:last-child { border-right: none; }
+.elem-opt:hover { background: var(--surface2); }
+.elem-opt.sel-real    { background: var(--green-bg);   color: var(--green); }
+.elem-opt.sel-enhance { background: var(--yellow-bg);  color: var(--yellow); }
+.elem-opt.sel-ai      { background: var(--red-bg);     color: var(--red); }
+.elem-opt .opt-icon { font-size: 13px; line-height: 1; }
+.elem-opt .opt-label { font-size: 9px; text-align: center; line-height: 1.2; font-weight: 600; letter-spacing: 0.02em; }
+
+/* selected row highlight */
+.elem-row.state-real    { border-color: var(--green-border); }
+.elem-row.state-enhance { border-color: var(--yellow-border); }
+.elem-row.state-ai      { border-color: var(--red-border); }
+
+/* ═══ RESULT ═══ */
+.result-section { display: none; margin-top: 8px; }
+.result-section.visible { display: block; animation: slideIn .3s ease; }
+
+.result-card {
+  border-radius: 14px; padding: 20px 22px;
+  border: 2px solid;
+  display: flex; flex-direction: column; gap: 10px;
+}
+.result-card.r-green  { background: var(--green-bg);  border-color: var(--green-border); }
+.result-card.r-yellow { background: var(--yellow-bg); border-color: var(--yellow-border); }
+.result-card.r-red    { background: var(--red-bg);    border-color: var(--red-border); }
+
+.result-top { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px; }
+.result-label { font-size: 20px; font-weight: 900; letter-spacing: -0.02em; }
+.result-card.r-green  .result-label { color: var(--green); }
+.result-card.r-yellow .result-label { color: var(--yellow); }
+.result-card.r-red    .result-label { color: var(--red); }
+
+.result-score-badge {
+  font-family: 'Space Mono', monospace;
+  font-size: 11px; padding: 4px 12px; border-radius: 20px;
+}
+.result-card.r-green  .result-score-badge { background: rgba(27,107,58,0.12); color: var(--green); }
+.result-card.r-yellow .result-score-badge { background: rgba(139,94,0,0.12);  color: var(--yellow); }
+.result-card.r-red    .result-score-badge { background: rgba(139,26,26,0.12); color: var(--red); }
+
+.result-desc { font-size: 12px; color: var(--ink2); line-height: 1.65; }
+.result-breakdown { display: flex; flex-direction: column; gap: 4px; margin-top: 4px; }
+.rb-row {
+  display: flex; align-items: center; justify-content: space-between;
+  font-size: 11px; color: var(--ink2);
+  padding: 5px 0; border-bottom: 1px dashed rgba(0,0,0,0.08);
+}
+.rb-row:last-child { border-bottom: none; }
+.rb-elem { display: flex; align-items: center; gap: 6px; }
+.rb-val {
+  font-family: 'Space Mono', monospace; font-size: 10px; font-weight: 700;
+}
+.rb-val.rv-0    { color: var(--green); }
+.rb-val.rv-half { color: var(--yellow); }
+.rb-val.rv-full { color: var(--red); }
+
+/* override notice */
+.override-notice {
+  display: flex; align-items: flex-start; gap: 8px;
+  padding: 10px 12px;
+  background: rgba(139,26,26,0.08); border-radius: 8px; border: 1px solid var(--red-border);
+  font-size: 11px; color: var(--red); line-height: 1.55;
+}
+
+/* ═══ FOOTER ═══ */
+.foot {
+  margin-top: 40px; padding-top: 16px;
+  border-top: 1px solid var(--border);
+  display: flex; justify-content: space-between; align-items: center;
+  flex-wrap: wrap; gap: 8px;
+}
+.foot-mono { font-family: 'Space Mono', monospace; font-size: 9px; color: var(--ink3); letter-spacing: 0.1em; }
+
+/* ═══ RESPONSIVE ═══ */
+@media (max-width: 540px) {
+  .cat-grid { grid-template-columns: repeat(2, 1fr); }
+  .elem-opt { width: 60px; }
+  .score-panel { flex-direction: column; align-items: flex-start; }
+  .score-bar-wrap { width: 100%; }
+}
+@media (max-width: 360px) {
+  .cat-grid { grid-template-columns: repeat(2, 1fr); }
+  .elem-opt { width: 52px; font-size: 9px; }
+}
+</style>
+</head>
+<body>
+<div class="shell">
+
+  <!-- HEADER -->
+  <div class="hd">
+    <div class="hd-label">AI Transparency Tool</div>
+    <h1>AI Content<br>Label Calculator</h1>
+    <p class="hd-sub">Select a content category, choose the content type, then mark each element as Real, AI-Enhanced, or AI-Generated. Your final label is calculated automatically.</p>
+  </div>
+
+  <!-- STICKY SCORE -->
+  <div class="score-panel" id="scorePanel">
+    <div class="score-left">
+      <div class="score-title">Current Score</div>
+      <div class="score-label">
+        <span class="sl-val" id="scoreVal">0</span>
+        <span id="scoreEmoji" style="font-size:20px">—</span>
+        <span id="scoreLabelText" style="font-size:13px;opacity:.7">Select content type</span>
+      </div>
+    </div>
+    <div class="score-bar-wrap">
+      <div class="score-bar-track"><div class="score-bar-fill" id="scoreBarFill"></div></div>
+    </div>
+    <div class="score-right">
+      <button class="reset-btn" onclick="resetAll()">↺ RESET</button>
+    </div>
+  </div>
+
+  <!-- STEP 1 -->
+  <div class="step-label"><span class="sn">1</span> Choose Content Category</div>
+  <div class="cat-grid">
+    <button class="cat-btn" data-cat="video"    onclick="selectCat('video',this)">
+      <span class="cat-icon">🎬</span><span class="cat-name">Video</span>
+    </button>
+    <button class="cat-btn" data-cat="audio"    onclick="selectCat('audio',this)">
+      <span class="cat-icon">🎵</span><span class="cat-name">Audio / Music</span>
+    </button>
+    <button class="cat-btn" data-cat="visual"   onclick="selectCat('visual',this)">
+      <span class="cat-icon">🖼</span><span class="cat-name">Visual Art</span>
+    </button>
+    <button class="cat-btn" data-cat="text"     onclick="selectCat('text',this)">
+      <span class="cat-icon">📖</span><span class="cat-name">Text</span>
+    </button>
+    <button class="cat-btn" data-cat="interact" onclick="selectCat('interact',this)">
+      <span class="cat-icon">🎮</span><span class="cat-name">Interactive</span>
+    </button>
+    <button class="cat-btn" data-cat="info"     onclick="selectCat('info',this)">
+      <span class="cat-icon">📡</span><span class="cat-name">News & Info</span>
+    </button>
+  </div>
+
+  <!-- STEP 2 -->
+  <div class="sub-section" id="subSection">
+    <div class="step-label"><span class="sn">2</span> Select Content Type</div>
+    <div class="sub-grid" id="subGrid"></div>
+  </div>
+
+  <!-- STEP 3 -->
+  <div class="elem-section" id="elemSection">
+    <div class="step-label"><span class="sn">3</span> Mark Each Element</div>
+    <div class="elem-desc" id="elemDesc">
+      For each element below, select: <strong>Real</strong> (0 pts) · <strong>AI-Enhanced</strong> (½ weight) · <strong>AI-Generated</strong> (full weight).
+    </div>
+    <div class="elem-list-ui" id="elemListUI"></div>
+  </div>
+
+  <!-- RESULT -->
+  <div class="result-section" id="resultSection">
+    <div class="result-card" id="resultCard">
+      <div class="result-top">
+        <div class="result-label" id="resultLabel"></div>
+        <div class="result-score-badge" id="resultBadge"></div>
+      </div>
+      <div class="result-desc" id="resultDesc"></div>
+      <div id="overrideNotice"></div>
+      <div class="result-breakdown" id="resultBreakdown"></div>
+    </div>
+  </div>
+
+  <div class="foot">
+    <span class="foot-mono">AI CONTENT TAXONOMY v1.0 · 6 CATEGORIES · 32 TYPES</span>
+    <span class="foot-mono">🟢 0–30 · 🟡 31–65 · 🔴 66–100</span>
+  </div>
+</div>
+
+<script>
+/* ════════════════════════════════════════
+   DATA
+════════════════════════════════════════ */
+const TAXONOMY = {
+  video: {
+    label: 'Video Content',
+    types: [
+      { id:'film',    icon:'🎥', name:'Film',          note:'Actor identity + voice are top-weighted. AI deepfake actor triggers override.',
+        elements:[
+          {emoji:'👤',name:'Actor / Performer',   weight:27, core:true,  override:true},
+          {emoji:'🎤',name:'Voice / Dialogue',    weight:23, core:true,  override:false},
+          {emoji:'📖',name:'Screenplay / Script', weight:20, core:false, override:false},
+          {emoji:'🎬',name:'Video Footage',       weight:18, core:false, override:false},
+          {emoji:'🧸',name:'Props / Objects',     weight:4,  core:false, override:false},
+          {emoji:'🐾',name:'Animals',             weight:4,  core:false, override:false},
+          {emoji:'🌿',name:'Plants / Environment',weight:4,  core:false, override:false},
+        ]},
+      { id:'mv',      icon:'🎤', name:'Music Video',   note:'Artist identity is the #1 element. Full AI virtual singer triggers 🔴 override.',
+        elements:[
+          {emoji:'👤',name:'Artist / Singer',    weight:30, core:true,  override:true},
+          {emoji:'🎤',name:'Voice / Vocal',      weight:25, core:true,  override:false},
+          {emoji:'📖',name:'Lyrics',             weight:15, core:false, override:false},
+          {emoji:'🎬',name:'Video Footage',      weight:15, core:false, override:false},
+          {emoji:'🧸',name:'Objects / Props',    weight:5,  core:false, override:false},
+          {emoji:'🐾',name:'Animals',            weight:5,  core:false, override:false},
+          {emoji:'🌿',name:'Plants',             weight:5,  core:false, override:false},
+        ]},
+      { id:'drama',   icon:'📺', name:'Drama / Series', note:'Same as Film. Episode-level continuity adds extra weight.',
+        elements:[
+          {emoji:'👤',name:'Actor / Cast',       weight:27, core:true,  override:true},
+          {emoji:'🎤',name:'Voice / Dialogue',   weight:23, core:true,  override:false},
+          {emoji:'📖',name:'Script',             weight:20, core:false, override:false},
+          {emoji:'🎬',name:'Video Footage',      weight:18, core:false, override:false},
+          {emoji:'🧸',name:'Set / Props',        weight:12, core:false, override:false},
+        ]},
+      { id:'doc',     icon:'🎞', name:'Documentary',  note:'Factual accuracy is paramount. Fabricated footage = highest risk.',
+        elements:[
+          {emoji:'👤',name:'Subject / Interviewee',   weight:27, core:true,  override:true},
+          {emoji:'🎤',name:'Narration / Voice-over',  weight:23, core:true,  override:false},
+          {emoji:'📖',name:'Factual Content',         weight:22, core:true,  override:false},
+          {emoji:'🎬',name:'Footage',                 weight:18, core:false, override:false},
+          {emoji:'📍',name:'Location / Setting',      weight:10, core:false, override:false},
+        ]},
+      { id:'short',   icon:'📱', name:'Shorts / Reels', note:'Fewer elements — detection is simpler than long-form.',
+        elements:[
+          {emoji:'👤',name:'Presenter / Creator',  weight:40, core:true,  override:true},
+          {emoji:'🎤',name:'Voice',                weight:30, core:true,  override:false},
+          {emoji:'🎬',name:'Video Footage',        weight:20, core:false, override:false},
+          {emoji:'🎵',name:'Background Music',     weight:10, core:false, override:false},
+        ]},
+      { id:'anim',    icon:'🎠', name:'Animation',     note:'No live actor — art style replaces the person as the core element.',
+        elements:[
+          {emoji:'🎨',name:'Art Style / Direction', weight:30, core:true,  override:false},
+          {emoji:'🎤',name:'Voice Acting',          weight:25, core:true,  override:false},
+          {emoji:'📖',name:'Script / Story',        weight:25, core:false, override:false},
+          {emoji:'🎬',name:'Motion / Animation',    weight:20, core:false, override:false},
+        ]},
+    ]
+  },
+  audio: {
+    label: 'Audio / Music Content',
+    types: [
+      { id:'song', icon:'🎤', name:'Song / Single', note:'No visuals — all 100 pts across 3 audio elements.',
+        elements:[
+          {emoji:'👤',name:'Artist Identity',    weight:40, core:true,  override:true},
+          {emoji:'🎤',name:'Voice / Vocal',      weight:35, core:true,  override:false},
+          {emoji:'📖',name:'Lyrics',             weight:25, core:false, override:false},
+        ]},
+      { id:'album', icon:'💿', name:'Album / EP', note:'Cover art adds a visual dimension to scoring.',
+        elements:[
+          {emoji:'👤',name:'Artist Identity',    weight:35, core:true,  override:true},
+          {emoji:'🎤',name:'Voice / Vocal',      weight:30, core:true,  override:false},
+          {emoji:'📖',name:'Lyrics',             weight:20, core:false, override:false},
+          {emoji:'🎼',name:'Composition',        weight:10, core:false, override:false},
+          {emoji:'🎨',name:'Cover Art',          weight:5,  core:false, override:false},
+        ]},
+      { id:'podcast', icon:'🎙', name:'Podcast',     note:'Same structure as Song. Also carries informational weight.',
+        elements:[
+          {emoji:'👤',name:'Host / Creator',     weight:40, core:true,  override:true},
+          {emoji:'🎤',name:'Voice',              weight:35, core:true,  override:false},
+          {emoji:'📖',name:'Script / Content',   weight:25, core:false, override:false},
+        ]},
+      { id:'audiobook', icon:'🔊', name:'Audiobook',  note:'Dual-axis: is the text AI-written AND is the voice AI-synthesized?',
+        elements:[
+          {emoji:'🎤',name:'Narration / Voice',  weight:40, core:true,  override:false},
+          {emoji:'📖',name:'Source Text',        weight:40, core:true,  override:false},
+          {emoji:'👤',name:'Author Attribution', weight:20, core:false, override:false},
+        ]},
+      { id:'bgm', icon:'🎼', name:'BGM / Sound FX',  note:'No vocals — composition itself is the primary element.',
+        elements:[
+          {emoji:'🎼',name:'Composition / Music',weight:70, core:true,  override:false},
+          {emoji:'🎹',name:'Performance',        weight:30, core:false, override:false},
+        ]},
+    ]
+  },
+  visual: {
+    label: 'Visual Art / Image Content',
+    types: [
+      { id:'photo', icon:'📷', name:'Photography', note:'Deepfake context makes human subjects top priority.',
+        elements:[
+          {emoji:'👤',name:'Person / Subject',   weight:40, core:true,  override:true},
+          {emoji:'🖼',name:'Background',         weight:20, core:false, override:false},
+          {emoji:'🧸',name:'Subject Object',     weight:20, core:false, override:false},
+          {emoji:'🧸',name:'Secondary Objects',  weight:7,  core:false, override:false},
+          {emoji:'🐾',name:'Animals',            weight:7,  core:false, override:false},
+          {emoji:'🌿',name:'Plants',             weight:6,  core:false, override:false},
+        ]},
+      { id:'image', icon:'🖼', name:'Composite Image', note:'Covers AI-generated and AI-manipulated images.',
+        elements:[
+          {emoji:'👤',name:'Person / Figure',    weight:35, core:true,  override:true},
+          {emoji:'🖼',name:'Background / Scene', weight:20, core:false, override:false},
+          {emoji:'🧸',name:'Primary Object',     weight:20, core:false, override:false},
+          {emoji:'🧸',name:'Secondary Objects',  weight:8,  core:false, override:false},
+          {emoji:'🐾',name:'Animals',            weight:9,  core:false, override:false},
+          {emoji:'🌿',name:'Plants',             weight:8,  core:false, override:false},
+        ]},
+      { id:'illus', icon:'🎨', name:'Illustration / Painting', note:'Style/composition must be rated — AI style mimicry is the key detection point.',
+        elements:[
+          {emoji:'🎨',name:'Art Style & Composition',weight:30, core:true,  override:false},
+          {emoji:'👤',name:'Figure / Character',    weight:25, core:true,  override:false},
+          {emoji:'🖼',name:'Background',            weight:20, core:false, override:false},
+          {emoji:'🧸',name:'Objects',               weight:10, core:false, override:false},
+          {emoji:'🐾',name:'Animals',               weight:8,  core:false, override:false},
+          {emoji:'🌿',name:'Plants',                weight:7,  core:false, override:false},
+        ]},
+      { id:'webtoon', icon:'💬', name:'Webtoon / Comics', note:'Both art and narrative require separate judgment.',
+        elements:[
+          {emoji:'🎨',name:'Art Style',       weight:35, core:true,  override:false},
+          {emoji:'📖',name:'Story / Script',  weight:35, core:true,  override:false},
+          {emoji:'👤',name:'Characters',      weight:20, core:false, override:false},
+          {emoji:'🖼',name:'Backgrounds',     weight:10, core:false, override:false},
+        ]},
+      { id:'infographic', icon:'📊', name:'Infographic', note:'Information truthfulness outweighs design aesthetics.',
+        elements:[
+          {emoji:'📖',name:'Data & Content',  weight:60, core:true,  override:false},
+          {emoji:'🎨',name:'Visual Design',   weight:25, core:false, override:false},
+          {emoji:'📍',name:'Source Citation', weight:15, core:false, override:false},
+        ]},
+      { id:'3d', icon:'🧊', name:'3D Model / Render', note:'Growing area as AI 3D generation tools proliferate.',
+        elements:[
+          {emoji:'🎨',name:'Form & Structure',      weight:40, core:true,  override:false},
+          {emoji:'👤',name:'Character (if present)',weight:35, core:false, override:true},
+          {emoji:'🖼',name:'Environment / Scene',   weight:25, core:false, override:false},
+        ]},
+    ]
+  },
+  text: {
+    label: 'Text Content',
+    types: [
+      { id:'novel', icon:'📚', name:'Novel / Book', note:'Original data had only "story" — writing style & author must be added.',
+        elements:[
+          {emoji:'📖',name:'Narrative / Story',  weight:55, core:true,  override:false},
+          {emoji:'✍️',name:'Writing Style',      weight:25, core:true,  override:false},
+          {emoji:'👤',name:'Author Attribution', weight:15, core:false, override:false},
+          {emoji:'🖼',name:'Illustrations',      weight:5,  core:false, override:false},
+        ]},
+      { id:'poetry', icon:'✍️', name:'Poetry / Essay', note:'AI stylistic patterns are more pronounced in short-form writing.',
+        elements:[
+          {emoji:'✍️',name:'Style & Voice',      weight:50, core:true,  override:false},
+          {emoji:'📖',name:'Content / Ideas',    weight:35, core:true,  override:false},
+          {emoji:'👤',name:'Author Attribution', weight:15, core:false, override:false},
+        ]},
+      { id:'script', icon:'📜', name:'Screenplay / Script', note:'Source material for Video. Standalone labeling is also needed.',
+        elements:[
+          {emoji:'📖',name:'Narrative Structure',weight:45, core:true,  override:false},
+          {emoji:'💬',name:'Dialogue',           weight:35, core:true,  override:false},
+          {emoji:'👤',name:'Writer',             weight:20, core:false, override:false},
+        ]},
+      { id:'copy', icon:'📢', name:'Marketing Copy', note:'Demand for AI transparency in ad copy is growing rapidly.',
+        elements:[
+          {emoji:'📖',name:'Core Message',       weight:55, core:true,  override:false},
+          {emoji:'✍️',name:'Tone & Voice',       weight:30, core:false, override:false},
+          {emoji:'🎨',name:'Visual Elements',    weight:15, core:false, override:false},
+        ]},
+    ]
+  },
+  interact: {
+    label: 'Interactive Content',
+    types: [
+      { id:'game', icon:'🕹', name:'Game', note:'Score each asset category individually, then sum.',
+        elements:[
+          {emoji:'🎨',name:'Art & Graphics',   weight:30, core:true,  override:false},
+          {emoji:'📖',name:'Story / World',    weight:30, core:true,  override:false},
+          {emoji:'🎤',name:'Voice Acting',     weight:15, core:false, override:false},
+          {emoji:'🎵',name:'BGM / Soundtrack', weight:15, core:false, override:false},
+          {emoji:'🧊',name:'3D Assets',        weight:10, core:false, override:false},
+        ]},
+      { id:'chatbot', icon:'🤖', name:'AI Chatbot / Assistant', note:'Output is inherently AI-Generated; persona design is the Human-led dimension.',
+        elements:[
+          {emoji:'🧠',name:'Response Generation',weight:50, core:true,  override:false},
+          {emoji:'👤',name:'Persona Design',     weight:35, core:true,  override:false},
+          {emoji:'🎤',name:'Voice / TTS',        weight:15, core:false, override:false},
+        ]},
+      { id:'vr', icon:'🥽', name:'VR / AR Experience', note:'Entire immersive environment must be broken into element units.',
+        elements:[
+          {emoji:'🌐',name:'Environment Design', weight:35, core:true,  override:false},
+          {emoji:'👤',name:'Avatar / Character', weight:30, core:true,  override:true},
+          {emoji:'🎵',name:'Spatial Audio',      weight:20, core:false, override:false},
+          {emoji:'🧊',name:'3D Objects',         weight:15, core:false, override:false},
+        ]},
+    ]
+  },
+  info: {
+    label: 'News & Informational Content',
+    types: [
+      { id:'news', icon:'📰', name:'News Article', note:'Misinformation risk requires a separate Override rule.',
+        elements:[
+          {emoji:'📖',name:'Factual Content',    weight:40, core:true,  override:false},
+          {emoji:'👤',name:'Journalist / Source',weight:30, core:true,  override:true},
+          {emoji:'📍',name:'Evidence / Reference',weight:20,core:true,  override:false},
+          {emoji:'🖼',name:'Press Images',       weight:10, core:false, override:false},
+        ]},
+      { id:'report', icon:'📋', name:'Report / Research Paper', note:'AI generation raises credibility and plagiarism concerns.',
+        elements:[
+          {emoji:'📖',name:'Research Content',   weight:45, core:true,  override:false},
+          {emoji:'👤',name:'Author(s)',           weight:25, core:true,  override:true},
+          {emoji:'📍',name:'Data & Sources',     weight:20, core:true,  override:false},
+          {emoji:'✍️',name:'Writing Style',      weight:10, core:false, override:false},
+        ]},
+      { id:'social', icon:'📲', name:'Social Media Post', note:'Compact format. Attached media triggers compound scoring.',
+        elements:[
+          {emoji:'👤',name:'Author / Account',   weight:35, core:true,  override:true},
+          {emoji:'📖',name:'Text Content',       weight:35, core:true,  override:false},
+          {emoji:'🖼',name:'Attached Image',     weight:15, core:false, override:false},
+          {emoji:'🎬',name:'Attached Video',     weight:15, core:false, override:false},
+        ]},
+      { id:'ad', icon:'📣', name:'Advertisement', note:'Regulation of AI models in advertising is under active discussion globally.',
+        elements:[
+          {emoji:'👤',name:'Model / Talent',     weight:35, core:true,  override:true},
+          {emoji:'📖',name:'Copy / Message',     weight:35, core:true,  override:false},
+          {emoji:'🖼',name:'Visuals',            weight:20, core:false, override:false},
+          {emoji:'🎵',name:'BGM',                weight:10, core:false, override:false},
+        ]},
+    ]
+  }
+};
+
+/* ════════════════════════════════════════
+   STATE
+════════════════════════════════════════ */
+let currentCat = null;
+let currentType = null;
+let elemStates = {}; // { idx: 'real'|'enhance'|'ai' }
+
+/* ════════════════════════════════════════
+   STEP 1: SELECT CATEGORY
+════════════════════════════════════════ */
+function selectCat(cat, btn) {
+  currentCat = cat;
+  currentType = null;
+  elemStates = {};
+
+  document.querySelectorAll('.cat-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+
+  // Build sub-types
+  const types = TAXONOMY[cat].types;
+  const grid = document.getElementById('subGrid');
+  grid.innerHTML = types.map(t => `
+    <button class="sub-btn" onclick="selectType('${cat}','${t.id}',this)">
+      <span class="sub-btn-icon">${t.icon}</span>
+      <span class="sub-btn-name">${t.name}</span>
+    </button>
+  `).join('');
+
+  document.getElementById('subSection').classList.add('visible');
+  document.getElementById('elemSection').classList.remove('visible');
+  document.getElementById('resultSection').classList.remove('visible');
+
+  resetScore();
+  sendHeight();
+}
+
+/* ════════════════════════════════════════
+   STEP 2: SELECT TYPE
+════════════════════════════════════════ */
+function selectType(cat, typeId, btn) {
+  currentType = TAXONOMY[cat].types.find(t => t.id === typeId);
+  elemStates = {};
+
+  document.querySelectorAll('.sub-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+
+  renderElements(currentType);
+
+  document.getElementById('elemSection').classList.add('visible');
+  document.getElementById('resultSection').classList.remove('visible');
+
+  resetScore();
+  sendHeight();
+}
+
+/* ════════════════════════════════════════
+   RENDER ELEMENTS
+════════════════════════════════════════ */
+function renderElements(type) {
+  document.getElementById('elemDesc').innerHTML =
+    `<strong>${type.name}</strong> — ${type.note}<br><br>` +
+    `For each element: <strong style="color:var(--green)">Real</strong> = 0 pts &nbsp;·&nbsp; ` +
+    `<strong style="color:var(--yellow)">AI-Enhanced</strong> = ½ weight &nbsp;·&nbsp; ` +
+    `<strong style="color:var(--red)">AI-Generated</strong> = full weight.`;
+
+  const list = document.getElementById('elemListUI');
+  list.innerHTML = type.elements.map((el, i) => `
+    <div class="elem-row" id="elemRow_${i}">
+      <div class="elem-row-header">
+        <div class="elem-row-info">
+          <span class="elem-emoji">${el.emoji}</span>
+          <div class="elem-name-block">
+            <div class="elem-name">${el.name}</div>
+            <div class="elem-weight">weight ${el.weight} pts${el.override ? ' · ⚡ override' : ''}</div>
+          </div>
+          ${el.core ? '<span class="elem-core-tag">CORE</span>' : ''}
+        </div>
+        <div class="elem-options">
+          <button class="elem-opt" onclick="setElem(${i},'real',this)">
+            <span class="opt-icon">✅</span>
+            <span class="opt-label">Real</span>
+          </button>
+          <button class="elem-opt" onclick="setElem(${i},'enhance',this)">
+            <span class="opt-icon">🔧</span>
+            <span class="opt-label">AI-Enhanced</span>
+          </button>
+          <button class="elem-opt" onclick="setElem(${i},'ai',this)">
+            <span class="opt-icon">🤖</span>
+            <span class="opt-label">AI-Generated</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  `).join('');
+}
+
+/* ════════════════════════════════════════
+   STEP 3: SET ELEMENT STATE
+════════════════════════════════════════ */
+function setElem(idx, state, btn) {
+  elemStates[idx] = state;
+
+  // Update button styles
+  const row = document.getElementById(`elemRow_${idx}`);
+  const opts = row.querySelectorAll('.elem-opt');
+  opts.forEach(o => { o.classList.remove('sel-real','sel-enhance','sel-ai'); });
+  row.classList.remove('state-real','state-enhance','state-ai');
+
+  if (state === 'real')    { btn.classList.add('sel-real');    row.classList.add('state-real'); }
+  if (state === 'enhance') { btn.classList.add('sel-enhance'); row.classList.add('state-enhance'); }
+  if (state === 'ai')      { btn.classList.add('sel-ai');      row.classList.add('state-ai'); }
+
+  calcAndShow();
+  sendHeight();
+}
+
+/* ════════════════════════════════════════
+   CALCULATE
+════════════════════════════════════════ */
+function calcAndShow() {
+  if (!currentType) return;
+  const els = currentType.elements;
+  const totalSet = Object.keys(elemStates).length;
+  if (totalSet === 0) { resetScore(); return; }
+
+  let score = 0;
+  let overrideTrigger = null;
+  const breakdown = [];
+
+  els.forEach((el, i) => {
+    const st = elemStates[i];
+    if (st === undefined) return;
+
+    let pts = 0;
+    if (st === 'real')    pts = 0;
+    if (st === 'enhance') pts = el.weight * 0.5;
+    if (st === 'ai')      pts = el.weight;
+
+    score += pts;
+    breakdown.push({ emoji: el.emoji, name: el.name, state: st, pts, weight: el.weight });
+
+    if (el.override && st === 'ai') overrideTrigger = el.name;
+  });
+
+  // If override triggered → force 100
+  const finalScore = overrideTrigger ? 100 : Math.round(score);
+
+  // Label
+  let labelEmoji, labelText, labelClass, cardClass, desc;
+  if (finalScore <= 30) {
+    labelEmoji = '🟢'; labelText = 'Human-led'; labelClass = 'label-green'; cardClass = 'r-green';
+    desc = 'All core elements are real. AI plays only a supporting role. Creative intent and execution are human-driven.';
+  } else if (finalScore <= 65) {
+    labelEmoji = '🟡'; labelText = 'AI-Assisted'; labelClass = 'label-yellow'; cardClass = 'r-yellow';
+    desc = 'Some key elements are AI-generated or AI-enhanced. Human direction is maintained but AI involvement is substantial.';
+  } else {
+    labelEmoji = '🔴'; labelText = 'AI-Generated'; labelClass = 'label-red'; cardClass = 'r-red';
+    desc = 'Most core elements are AI-generated. Human role is limited to prompting, selection, or minor editing.';
+  }
+
+  // Update sticky score
+  const panel = document.getElementById('scorePanel');
+  panel.className = `score-panel ${labelClass}`;
+  document.getElementById('scoreVal').textContent = finalScore;
+  document.getElementById('scoreEmoji').textContent = labelEmoji;
+  document.getElementById('scoreLabelText').textContent = labelText;
+  document.getElementById('scoreBarFill').style.width = finalScore + '%';
+
+  // Result card
+  const rc = document.getElementById('resultCard');
+  rc.className = `result-card ${cardClass}`;
+  document.getElementById('resultLabel').textContent = `${labelEmoji} ${labelText}`;
+  document.getElementById('resultBadge').textContent = `Score: ${finalScore} / 100`;
+  document.getElementById('resultDesc').textContent = desc;
+
+  // Override notice
+  const ov = document.getElementById('overrideNotice');
+  ov.innerHTML = overrideTrigger
+    ? `<div class="override-notice">⚡ <strong>Override triggered</strong> — "${overrideTrigger}" is fully AI-generated. This element alone forces a 🔴 AI-Generated label regardless of total score.</div>`
+    : '';
+
+  // Breakdown
+  const bd = document.getElementById('resultBreakdown');
+  bd.innerHTML = breakdown.map(b => {
+    const cls = b.state === 'real' ? 'rv-0' : b.state === 'enhance' ? 'rv-half' : 'rv-full';
+    const stLabel = b.state === 'real' ? 'Real' : b.state === 'enhance' ? 'AI-Enhanced' : 'AI-Generated';
+    return `<div class="rb-row">
+      <span class="rb-elem">${b.emoji} ${b.name} <span style="opacity:.5;font-size:10px">(${stLabel})</span></span>
+      <span class="rb-val ${cls}">+${b.pts % 1 === 0 ? b.pts : b.pts.toFixed(1)} pts</span>
+    </div>`;
+  }).join('');
+
+  // Show result
+  const allSet = Object.keys(elemStates).length === els.length;
+  if (allSet || totalSet >= 2) {
+    document.getElementById('resultSection').classList.add('visible');
+  }
+}
+
+/* ════════════════════════════════════════
+   RESET
+════════════════════════════════════════ */
+function resetScore() {
+  const panel = document.getElementById('scorePanel');
+  panel.className = 'score-panel';
+  document.getElementById('scoreVal').textContent = '0';
+  document.getElementById('scoreEmoji').textContent = '—';
+  document.getElementById('scoreLabelText').textContent = 'Select content type';
+  document.getElementById('scoreBarFill').style.width = '0%';
+}
+
+function resetAll() {
+  currentCat = null; currentType = null; elemStates = {};
+  document.querySelectorAll('.cat-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('subSection').classList.remove('visible');
+  document.getElementById('elemSection').classList.remove('visible');
+  document.getElementById('resultSection').classList.remove('visible');
+  resetScore();
+  sendHeight();
+}
+
+/* ════════════════════════════════════════
+   CARRD IFRAME HEIGHT SYNC
+════════════════════════════════════════ */
+function sendHeight() {
+  try {
+    window.parent.postMessage({ type: 'resize', height: document.body.scrollHeight + 40 }, '*');
+  } catch(e) {}
+}
+window.addEventListener('load', sendHeight);
+window.addEventListener('resize', sendHeight);
+new MutationObserver(sendHeight).observe(document.body, { childList: true, subtree: true, attributes: true });
+</script>
+</body>
+</html>
