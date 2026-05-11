@@ -439,7 +439,7 @@ async function apiPost(body) {
   if (!SHEET_API_URL) return null;
   const resp = await fetch(SHEET_API_URL, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: { 'Content-Type': 'text/plain' },
     body: JSON.stringify(body),
   });
   if (!resp.ok) throw new Error('HTTP ' + resp.status);
