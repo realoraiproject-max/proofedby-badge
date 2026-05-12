@@ -1,0 +1,1927 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>교실 예약 시스템 v9</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@300;400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap');
+
+:root {
+  --navy: #0D1B2E;
+  --blue: #1A4FA0;
+  --blue-l: #3B7DD8;
+  --blue-pale: #EBF2FF;
+  --accent: #F0A500;
+  --green: #0D9E6E;
+  --green-pale: #E6F9F3;
+  --red: #D94040;
+  --red-pale: #FEF0F0;
+  --bg: #F2F5FB;
+  --card: #FFFFFF;
+  --border: #DDE4EE;
+  --text: #1A2535;
+  --muted: #5A6A82;
+  --light: #9AAABB;
+  --sidebar-w: 250px;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { height: 100%; }
+body { font-family: 'IBM Plex Sans KR', sans-serif; background: var(--bg); color: var(--text); font-size: 13px; }
+
+/* LAYOUT */
+.app { display: flex; height: 100vh; overflow: hidden; }
+.sidebar { width: var(--sidebar-w); background: var(--navy); flex-shrink: 0; display: flex; flex-direction: column; overflow-y: auto; }
+.main-area { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+.topbar { background: var(--card); border-bottom: 1px solid var(--border); padding: 0 22px; height: 52px; display: flex; align-items: center; gap: 12px; flex-shrink: 0; }
+.content { flex: 1; overflow-y: auto; padding: 12px 16px; }
+
+/* SIDEBAR */
+.sb-brand { padding: 18px 16px 12px; border-bottom: 1px solid rgba(255,255,255,.07); }
+.sb-brand h1 { font-size: 13px; font-weight: 600; color: #fff; }
+.sb-brand p  { font-size: 10px; color: rgba(255,255,255,.3); margin-top: 2px; font-family: 'IBM Plex Mono', monospace; }
+.sb-section { padding: 8px 10px 4px; }
+.sb-section-label { font-size: 9px; font-weight: 600; color: rgba(255,255,255,.3); letter-spacing: .1em; text-transform: uppercase; padding: 0 8px; margin-bottom: 4px; }
+.nav-btn { display: flex; align-items: center; gap: 8px; padding: 8px 10px; border-radius: 6px; cursor: pointer; color: rgba(255,255,255,.5); font-size: 12px; font-weight: 500; transition: all .13s; margin-bottom: 1px; border: none; background: none; width: 100%; text-align: left; font-family: inherit; }
+.nav-btn:hover { background: rgba(255,255,255,.07); color: rgba(255,255,255,.85); }
+.nav-btn.active { background: var(--blue); color: #fff; }
+.nav-btn .ni { font-size: 14px; width: 18px; text-align: center; flex-shrink: 0; }
+.sb-divider { border: none; border-top: 1px solid rgba(255,255,255,.06); margin: 5px 10px; }
+.sb-footer { margin-top: auto; padding: 10px 14px; font-size: 10px; color: rgba(255,255,255,.2); border-top: 1px solid rgba(255,255,255,.05); }
+
+/* Sidebar dept/team tree */
+.sb-dept { margin-bottom: 2px; }
+.sb-dept-label { display: flex; align-items: center; gap: 6px; padding: 5px 10px; cursor: pointer; color: rgba(255,255,255,.6); font-size: 11px; font-weight: 600; border-radius: 5px; transition: all .12s; user-select: none; }
+.sb-dept-label:hover { background: rgba(255,255,255,.06); color: rgba(255,255,255,.9); }
+.sb-dept-label .arrow { font-size: 8px; transition: transform .15s; margin-left: auto; }
+.sb-dept.open .sb-dept-label .arrow { transform: rotate(90deg); }
+.sb-dept-teams { display: none; padding-left: 10px; }
+.sb-dept.open .sb-dept-teams { display: block; }
+.sb-team-btn { display: flex; align-items: center; gap: 6px; padding: 4px 10px; border-radius: 5px; cursor: pointer; color: rgba(255,255,255,.4); font-size: 11px; font-weight: 400; border: none; background: none; width: 100%; text-align: left; font-family: 'IBM Plex Mono', monospace; transition: all .12s; margin-bottom: 1px; }
+.sb-team-btn:hover { background: rgba(255,255,255,.06); color: rgba(255,255,255,.8); }
+.sb-team-btn.active { color: #fff; background: rgba(255,255,255,.1); }
+
+/* TOPBAR */
+.topbar h2 { font-size: 14px; font-weight: 600; color: var(--navy); }
+.spacer { flex: 1; }
+.topbar-date { font-size: 11px; color: var(--muted); font-family: 'IBM Plex Mono', monospace; }
+
+/* PAGES */
+.page { display: none; }
+.page.active { display: block; }
+
+/* CARDS */
+.card { background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 16px 18px; margin-bottom: 14px; }
+.card-title { font-size: 10px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 12px; }
+
+/* BUTTONS */
+.btn { padding: 6px 13px; border-radius: 6px; border: 1.5px solid var(--border); background: var(--card); font-size: 12px; font-family: inherit; cursor: pointer; font-weight: 500; color: var(--text); transition: all .12s; }
+.btn:hover { border-color: var(--blue-l); color: var(--blue); }
+.btn-primary { background: var(--blue); color: #fff; border-color: var(--blue); }
+.btn-primary:hover { background: var(--navy); border-color: var(--navy); color: #fff; }
+.btn-sm { padding: 4px 10px; font-size: 11px; }
+.btn-danger { color: var(--red); border-color: #F5A0A0; }
+.btn-danger:hover { background: var(--red-pale); }
+.btn-warn { color: #92400E; border-color: #F59E0B; background: #FFFBEB; }
+.btn-warn:hover { background: #FEF3C7; }
+.btn-ghost { background: transparent; border-color: transparent; color: var(--muted); }
+.btn-ghost:hover { background: var(--bg); color: var(--text); border-color: var(--border); }
+
+/* PERIOD SELECTOR */
+.period-grid { display: flex; gap: 5px; flex-wrap: wrap; margin-top: 6px; }
+.period-btn { width: 54px; padding: 5px 0; border-radius: 6px; border: 1.5px solid var(--border); background: var(--card); font-size: 11px; font-family: 'IBM Plex Mono', monospace; cursor: pointer; text-align: center; transition: all .12s; font-weight: 500; color: var(--muted); }
+.period-btn:hover { border-color: var(--blue-l); color: var(--blue); }
+.period-btn.selected { background: var(--blue); color: #fff; border-color: var(--blue); }
+.period-btn.conflict { background: #FEE2E2; color: #991B1B; border-color: #F5A0A0; cursor: not-allowed; }
+.period-label { font-size: 10px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: .05em; margin-bottom: 4px; }
+
+/* DEPT / TEAM GRID */
+.dept-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 8px; margin-bottom: 10px; }
+.dept-card { background: var(--card); border: 1.5px solid var(--border); border-radius: 9px; padding: 12px 14px; cursor: pointer; transition: all .13s; }
+.dept-card:hover { border-color: var(--blue-l); box-shadow: 0 2px 10px rgba(26,79,160,.1); }
+.dept-card.selected { border-color: var(--blue); background: var(--blue-pale); }
+.dept-card .dc-name { font-family: 'IBM Plex Mono', monospace; font-size: 15px; font-weight: 600; color: var(--navy); }
+.dept-card .dc-meta { font-size: 10px; color: var(--light); margin-top: 3px; }
+.team-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 8px; }
+.team-card { background: var(--card); border: 1.5px solid var(--border); border-radius: 9px; padding: 12px 14px; cursor: pointer; transition: all .13s; }
+.team-card:hover { border-color: var(--blue-l); box-shadow: 0 2px 12px rgba(26,79,160,.1); }
+.team-card.selected { border-color: var(--blue); background: var(--blue-pale); }
+.tc-name { font-family: 'IBM Plex Mono', monospace; font-size: 15px; font-weight: 500; color: var(--navy); }
+.tc-rooms { font-size: 10px; color: var(--light); margin-top: 4px; font-family: 'IBM Plex Mono', monospace; }
+.tc-ev-count { font-size: 9px; margin-top: 5px; }
+.tc-events { margin-top: 6px; display: flex; gap: 4px; flex-wrap: wrap; }
+
+/* ADMIN LOCK */
+.admin-locked { pointer-events: none; opacity: .35; user-select: none; }
+.admin-badge { display: inline-flex; align-items: center; gap: 5px; font-size: 10px; padding: 3px 10px; border-radius: 20px; font-weight: 600; cursor: pointer; border: 1.5px solid var(--border); transition: all .13s; }
+.admin-badge.locked { background: #FEF3C7; color: #92400E; border-color: #F59E0B; }
+.admin-badge.unlocked { background: var(--green-pale); color: var(--green); border-color: var(--green); }
+.admin-badge:hover { opacity: .85; }
+
+/* TEAM DETAIL PANEL */
+.team-panel { background: var(--card); border: 1.5px solid var(--blue-l); border-radius: 10px; padding: 18px 20px; animation: slideIn .18s ease; }
+@keyframes slideIn { from { opacity:0; transform:translateY(6px); } to { opacity:1; transform:translateY(0); } }
+.tp-header { display: flex; align-items: center; gap: 10px; margin-bottom: 16px; padding-bottom: 14px; border-bottom: 1px solid var(--border); flex-wrap: wrap; }
+.tp-badge { font-family: 'IBM Plex Mono', monospace; font-size: 22px; font-weight: 600; color: var(--navy); background: var(--blue-pale); padding: 4px 14px; border-radius: 7px; }
+.tp-meta { flex: 1; min-width: 200px; }
+.tp-cls-row { display: flex; gap: 6px; margin-top: 5px; align-items: center; flex-wrap: wrap; }
+.tp-cls-inp { width: 68px; font-family: 'IBM Plex Mono', monospace; font-size: 12px; padding: 4px 7px; border: 1px solid var(--border); border-radius: 5px; text-align: center; }
+.tp-cls-inp:focus { outline: none; border-color: var(--blue-l); }
+.tp-cls-hint { font-size: 11px; color: var(--light); }
+
+/* EVENT ROWS */
+.ev-section-title { font-size: 12px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 8px; margin-top: 14px; }
+.ev-rows { display: block; }
+.ev-row { display: flex; align-items: center; gap: 8px; padding: 9px 11px; background: var(--bg); border: 1px solid var(--border); border-radius: 7px; }
+.ev-chip { font-size: 11px; padding: 2px 7px; border-radius: 4px; white-space: nowrap; font-weight: 600; }
+.ev-name { font-size: 13px; font-weight: 600; color: var(--navy); min-width: 0; flex: 1; }
+.ev-date-inp { font-size: 12px; padding: 4px 7px; border: 1px solid var(--border); border-radius: 5px; font-family: inherit; margin-left: auto; flex-shrink: 0; }
+.ev-date-inp:focus { outline: none; border-color: var(--blue-l); }
+.ev-range-text { font-size: 11px; color: var(--muted); min-width: 64px; text-align: right; flex-shrink: 0; }
+.ev-row-dlpt { display: flex; align-items: center; gap: 8px; padding: 9px 11px; background: #FFFCF0; border: 1px solid #F5DFA0; border-radius: 7px; margin-top: 6px; }
+.dlpt-range-text { font-size: 11px; color: #8B6010; }
+.custom-ev-row { display: flex; align-items: center; gap: 8px; padding: 8px 10px; background: var(--bg); border: 1px solid var(--border); border-radius: 7px; margin-bottom: 6px; }
+.custom-ev-inp { font-size: 12px; padding: 4px 8px; border: 1px solid var(--border); border-radius: 5px; font-family: inherit; }
+.custom-ev-inp:focus { outline: none; border-color: var(--blue-l); }
+.custom-ev-name { width: 130px; }
+.custom-max-note { font-size: 11px; color: var(--muted); margin-top: 4px; }
+
+/* EVENT TYPE COLORS */
+.ev-ooca1  { background:#EDE9FE;color:#4C1D95; font-weight:700; }
+.ev-break  { background:#FDE68A;color:#78350F; font-weight:800; }
+.ev-imm2   { background:#D1FAE5;color:#064E3B; font-weight:700; }
+.ev-ooca2  { background:#FCE7F3;color:#831843; font-weight:700; }
+.ev-imm3   { background:#CCFBF1;color:#134E4A; font-weight:700; }
+.ev-ooca3  { background:#FEE2E2;color:#7F1D1D; font-weight:700; }
+.ev-cookery{ background:#BAE6FD;color:#0C4A6E; font-weight:800; }
+.ev-dlpt   { background:#FEF3C7;color:#78350F;border:1px solid #F59E0B; font-weight:700; }
+.ev-custom { background:#F1F5F9;color:#334155; font-weight:600; }
+
+/* CALENDAR */
+.cal-controls { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
+.cal-title { font-size: 16px; font-weight: 600; color: var(--navy); min-width: 160px; text-align: center; }
+.view-tabs { margin-left: auto; display: flex; gap: 3px; }
+.view-tab { font-size: 11px; padding: 4px 11px; border: 1px solid var(--border); border-radius: 5px; background: var(--card); color: var(--muted); cursor: pointer; font-family: inherit; }
+.view-tab.active { background: var(--navy); color: #fff; border-color: var(--navy); }
+.cal-legend { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 10px; }
+.leg { display: flex; align-items: center; gap: 4px; font-size: 10px; color: var(--muted); }
+.leg-dot { width: 9px; height: 9px; border-radius: 3px; }
+.cal-grid { width: 100%; border-collapse: collapse; table-layout: fixed; height: 100%; min-height: calc(100vh - 210px); }
+.cal-grid th { font-size: 11px; font-weight: 600; color: var(--muted); text-align: center; padding: 7px 2px; background: var(--bg); border: 1px solid var(--border); }
+.cal-grid td { vertical-align: top; padding: 4px 5px; border: 1px solid var(--border); cursor: pointer; transition: background .1s; height: 1px; }
+.cal-grid td:hover { background: #F4F8FF; }
+.cal-grid td.other-month { background: #F6F7FA; opacity:.6; }
+.cal-grid td.today { background: #EFF6FF; }
+.cal-grid td.has-events { border-bottom: 2px solid var(--blue-l); }
+.day-num { font-size: 11px; font-weight: 600; color: var(--muted); padding: 1px 3px; }
+.cal-grid td.sun .day-num { color:#DC2626; }
+.cal-grid td.sat .day-num { color:#2563EB; }
+.ev-cal-chip { font-size: 9.5px; padding: 2px 5px; border-radius: 3px; margin-bottom: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: block; }
+
+/* DAY MODAL */
+.overlay { position: fixed; inset: 0; background: rgba(11,27,46,.45); z-index: 100; display: none; align-items: flex-start; justify-content: center; padding-top: 60px; }
+.overlay.open { display: flex; }
+.modal { background: var(--card); border-radius: 12px; width: 560px; max-width: 95vw; max-height: 82vh; overflow-y: auto; box-shadow: 0 20px 60px rgba(0,0,0,.22); animation: mIn .18s ease; }
+@keyframes mIn { from{opacity:0;transform:scale(.96) translateY(-8px);} to{opacity:1;transform:scale(1) translateY(0);} }
+.modal-head { padding: 16px 18px 12px; border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 10px; position: sticky; top: 0; background: var(--card); z-index: 1; }
+.modal-head h3 { font-size: 14px; font-weight: 600; color: var(--navy); }
+.modal-close { margin-left: auto; background: none; border: none; font-size: 17px; color: var(--muted); cursor: pointer; }
+.modal-body { padding: 14px 18px; }
+
+/* Day event items */
+.dei { padding: 10px 12px; border: 1px solid var(--border); border-radius: 8px; margin-bottom: 8px; }
+.dei-head { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
+.dei-team { font-size: 12px; font-weight: 600; color: var(--navy); font-family: 'IBM Plex Mono', monospace; }
+.dei-rooms { display: flex; gap: 5px; flex-wrap: wrap; margin-top: 4px; }
+.room-section { width: 100%; margin-bottom: 8px; }
+.room-label-row { display: flex; align-items: center; gap: 8px; margin-bottom: 4px; }
+.room-tag { font-family: 'IBM Plex Mono', monospace; font-size: 12px; font-weight: 600; color: var(--navy); padding: 3px 10px; border-radius: 5px; background: var(--bg); border: 1px solid var(--border); }
+.slot-row { display: flex; gap: 4px; flex-wrap: wrap; }
+.slot-chip { font-size: 10px; font-family: 'IBM Plex Mono', monospace; padding: 3px 8px; border-radius: 4px; font-weight: 500; cursor: pointer; transition: all .12s; }
+.slot-chip.free { background: #D1FAE5; color: #065F46; }
+.slot-chip.free:hover { background: #059669; color: #fff; }
+.slot-chip.taken { background: #FEE2E2; color: #991B1B; cursor: pointer; }
+.slot-chip.taken:hover { background: #DC2626; color: #fff; }
+.slot-chip.blocked { background: #E5E7EB; color: #9CA3AF; cursor: not-allowed; opacity: .65; }
+
+/* BOOKING MODAL */
+.booking-modal { background: var(--card); border-radius: 12px; width: 440px; max-width: 95vw; max-height: 82vh; overflow-y: auto; box-shadow: 0 20px 60px rgba(0,0,0,.22); animation: mIn .18s ease; }
+.bk-field { margin-bottom: 11px; }
+.bk-field label { font-size: 10px; font-weight: 600; color: var(--muted); display: block; margin-bottom: 3px; text-transform: uppercase; letter-spacing: .05em; }
+.bk-field input { width: 100%; padding: 7px 9px; border: 1.5px solid var(--border); border-radius: 6px; font-size: 12px; font-family: inherit; color: var(--text); }
+.bk-field input:focus { outline: none; border-color: var(--blue-l); }
+
+/* Change history */
+.chg-history { margin-top: 10px; border-top: 1px dashed var(--border); padding-top: 8px; }
+.chg-history-title { font-size: 9px; font-weight: 600; color: var(--light); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 5px; }
+.chg-row { font-size: 10px; color: var(--muted); padding: 3px 0; border-bottom: 1px solid #F0F0F0; display: flex; gap: 6px; align-items: flex-start; }
+.chg-row:last-child { border-bottom: none; }
+.chg-row .chg-ts { color: var(--light); flex-shrink: 0; font-family: 'IBM Plex Mono', monospace; font-size: 9px; }
+.chg-row .chg-badge { font-size: 9px; padding: 1px 4px; border-radius: 3px; flex-shrink: 0; }
+.chg-add { background: #D1FAE5; color: #065F46; }
+.chg-cancel { background: #FEE2E2; color: #991B1B; }
+.chg-edit { background: #DBEAFE; color: #1E40AF; }
+
+/* TAG / BADGE */
+.tag { font-size: 10px; font-weight: 600; padding: 2px 6px; border-radius: 4px; }
+.tag-blue { background:#DBEAFE;color:#1E40AF; }
+.tag-green { background:#D1FAE5;color:#065F46; }
+.tag-amber { background:#FEF3C7;color:#92400E; }
+.empty-state { text-align:center; padding:36px 20px; color:var(--muted); font-size:13px; }
+.empty-state .es-icon { font-size:30px; margin-bottom:8px; }
+.divider { border:none; border-top:1px solid var(--border); margin:12px 0; }
+
+/* Form helpers */
+.ff { display: flex; flex-direction: column; gap: 3px; }
+.ff label { font-size: 10px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: .05em; }
+.ff input, .ff select { padding: 6px 8px; border: 1px solid var(--border); border-radius: 6px; font-size: 12px; font-family: inherit; color: var(--text); background: var(--card); }
+.ff input:focus, .ff select:focus { outline: none; border-color: var(--blue-l); }
+.cls-inp { width: 68px; font-family: 'IBM Plex Mono', monospace; text-align: center; }
+.add-form-wrap { background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 14px 16px; margin-bottom: 12px; }
+.add-form-wrap .form-title { font-size: 10px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 10px; }
+.add-form-fields { display: flex; gap: 8px; flex-wrap: wrap; align-items: flex-end; }
+</style>
+
+<style>
+.topbar { display:none !important; }
+body { font-size:1.5em; }
+
+.ev-chip { color:#fff !important; font-weight:bold; }
+.ev-ooca1 { background:#e74c3c; }
+.ev-break  { background:#d97706 !important; color:#fff !important; font-weight:900 !important; }
+.ev-imm2 { background:#2ecc71; }
+.ev-ooca2 { background:#9b59b6; }
+.ev-imm3 { background:#f39c12; }
+.ev-ooca3 { background:#1abc9c; }
+.ev-cookery{ background:#0284c7 !important; color:#fff !important; font-weight:900 !important; }
+.ev-dlpt { background:#34495e; }
+</style>
+
+</head>
+<body>
+<div class="app">
+
+<!-- SIDEBAR -->
+<div class="sidebar">
+  <div class="sb-brand">
+    <h1>🏫 교실 예약 시스템</h1>
+    <p>Classroom Reservation</p>
+  </div>
+  <div class="sb-section">
+    <div class="sb-section-label">메뉴</div>
+    <button class="nav-btn active" onclick="showPage('calendar')" id="nav-calendar"><span class="ni">📅</span> 캘린더</button>
+  </div>
+  <hr class="sb-divider">
+  <div class="sb-section" style="flex:1;overflow-y:auto;">
+    <div class="sb-section-label">과 · 팀</div>
+    <div id="sidebarTree"></div>
+  </div>
+  <hr class="sb-divider">
+  <div class="sb-section" style="padding-bottom:6px;">
+    <div class="sb-section-label">관리자</div>
+    <button class="nav-btn" onclick="showPage('teams')" id="nav-teams"><span class="ni">⚙️</span> 팀 관리</button>
+  </div>
+  <div class="sb-footer" id="sbDate"></div>
+</div>
+
+<!-- MAIN -->
+<div class="main-area">
+  <div class="topbar">
+    <h2 id="topbarTitle">캘린더</h2>
+    <div class="spacer"></div>
+    <span class="topbar-date" id="topbarDate"></span>
+    <div id="syncStatus" style="display:none;align-items:center;gap:6px;font-size:11px;padding:3px 10px;border-radius:20px;font-family:'IBM Plex Mono',monospace;"></div>
+    <button class="btn btn-sm" id="btnSaveAll" onclick="saveAllToSheet()" style="display:none;">☁️ 저장</button>
+    <div class="admin-badge locked" id="adminBadge" onclick="toggleAdminLock()" title="관리자 모드 잠금/해제">🔒 관리자</div>
+  </div>
+
+<!-- ADMIN PASSWORD MODAL -->
+<div class="overlay" id="adminOverlay" onclick="closeAdminModal(event)">
+  <div class="booking-modal" onclick="event.stopPropagation()" style="max-width:360px;">
+    <div class="modal-head">
+      <h3 id="adminModalTitle">관리자 인증</h3>
+      <button class="modal-close" onclick="closeAdminModal()">✕</button>
+    </div>
+    <div class="modal-body">
+      <p style="font-size:12px;color:var(--muted);margin-bottom:14px;">과·팀 추가/삭제는 관리자 권한이 필요합니다.<br>비밀번호를 입력하세요.</p>
+      <div class="bk-field">
+        <label>비밀번호</label>
+        <input id="adminPwInput" type="password" placeholder="••••••••"
+          onkeydown="if(event.key==='Enter')confirmAdminPw()">
+      </div>
+      <div id="adminPwError" style="display:none;color:var(--red);font-size:11px;margin-top:6px;">비밀번호가 올바르지 않습니다.</div>
+      <div style="display:flex;gap:8px;margin-top:14px;">
+        <button class="btn btn-primary" onclick="confirmAdminPw()">확인</button>
+        <button class="btn btn-ghost" onclick="closeAdminModal()">취소</button>
+      </div>
+    </div>
+  </div>
+</div>
+  <!-- Google Sheets 연동 배너 -->
+  <div id="sheetBanner" style="background:#FEF3C7;border-bottom:1px solid #F59E0B;padding:8px 22px;font-size:12px;color:#78350F;display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+    <span>⚠️ <strong>Google Sheets 미연동</strong> — 데이터가 새로고침 시 사라집니다.</span>
+    <button class="btn btn-sm btn-warn" onclick="promptSetApiUrl()">🔗 Apps Script URL 설정</button>
+    <button class="btn btn-sm btn-ghost" style="font-size:11px;color:#78350F;" onclick="document.getElementById('sheetBanner').style.display='none'">숨기기</button>
+  </div>
+
+  <div class="content">
+
+    <!-- PAGE: CALENDAR (default) -->
+    <div class="page active" id="page-calendar">
+      <div class="card" style="display:flex;flex-direction:column;min-height:calc(100vh - 100px);">
+        <div class="cal-controls">
+          <button class="btn btn-sm" onclick="navCal(-1)">◀</button>
+          <span class="cal-title" id="calTitle"></span>
+          <button class="btn btn-sm" onclick="navCal(1)">▶</button>
+          <button class="btn btn-sm" onclick="goToday()" style="font-size:11px;padding:4px 10px;background:var(--blue-pale);border-color:var(--blue-l);color:var(--blue);font-weight:600;">오늘</button>
+          <div class="view-tabs">
+            <button class="view-tab" id="vWeek" onclick="setCalView('week')">주간</button>
+            <button class="view-tab active" id="vMonth" onclick="setCalView('month')">월간</button>
+          </div>
+        </div>
+        <div class="cal-legend" id="calLegend"></div>
+        <div id="calBody" style="flex:1;display:flex;flex-direction:column;"></div>
+        <div style="font-size:10px;color:var(--light);margin-top:8px;">날짜 클릭 → 행사 확인 및 교실 예약 · 교시 클릭 → 예약/취소</div>
+      </div>
+    </div>
+
+    <!-- PAGE: TEAMS -->
+    <div class="page" id="page-teams">
+
+      <!-- 과 추가 폼 -->
+      <div class="add-form-wrap" id="deptAddForm">
+        <div class="form-title" style="display:flex;align-items:center;gap:8px;font-size:12px;">
+          🏛️ 새 과(Department) 추가
+          <span id="adminFormLockBadge" style="font-size:10px;padding:2px 8px;border-radius:10px;background:#FEF3C7;color:#92400E;font-weight:600;border:1px solid #F59E0B;">🔒 관리자 전용</span>
+        </div>
+        <div class="add-form-fields" style="margin-top:10px;">
+          <div class="ff"><label>과 코드</label><input id="nDeptCode" placeholder="G" style="width:64px;" maxlength="2"></div>
+          <div class="ff"><label>과 이름</label><input id="nDeptName" placeholder="G과" style="width:110px;"></div>
+          <div class="ff"><label>&nbsp;</label><button class="btn btn-primary" onclick="requireAdmin(addDept)" style="font-size:12px;font-weight:600;">+ 과 추가</button></div>
+        </div>
+      </div>
+
+      <!-- 팀 추가 폼 -->
+      <div class="add-form-wrap" id="teamAddForm">
+        <div class="form-title" style="font-size:12px;">👥 새 팀 추가</div>
+        <div class="add-form-fields" style="margin-top:10px;">
+          <div class="ff"><label>소속 과</label><select id="nTeamDept" style="width:90px;"></select></div>
+          <div class="ff"><label>팀 번호</label><input id="nTeamNum" placeholder="6" style="width:64px;" maxlength="3"></div>
+          <div class="ff"><label>교실 1</label><input id="nCls1" placeholder="115" class="cls-inp"></div>
+          <div class="ff"><label>교실 2</label><input id="nCls2" placeholder="227" class="cls-inp"></div>
+          <div class="ff"><label>교실 3</label><input id="nCls3" placeholder="305" class="cls-inp"></div>
+          <div class="ff"><label>&nbsp;</label><button class="btn btn-primary" onclick="requireAdmin(addTeam)" style="font-size:12px;font-weight:600;">+ 팀 추가</button></div>
+        </div>
+        <div style="font-size:11px;color:var(--muted);margin-top:6px;">팀명은 K + 과코드 + 번호로 자동 생성 (예: KA1, KF3)</div>
+      </div>
+
+      <!-- Dept list -->
+      <div class="card">
+        <div class="card-title">과 목록 <span style="font-weight:400;text-transform:none;letter-spacing:0;color:var(--light);font-size:10px;">— 과 카드 클릭 시 해당 팀 필터</span></div>
+        <div class="dept-grid" id="deptGrid"></div>
+      </div>
+
+      <!-- Team cards -->
+      <div class="card" id="teamSection">
+        <div class="card-title" id="teamSectionTitle">전체 팀 목록 · 교실 · 행사 현황 <span style="font-weight:400;text-transform:none;letter-spacing:0;color:var(--light);">— 카드 클릭 시 행사 설정</span></div>
+        <div class="team-grid" id="teamGrid"></div>
+      </div>
+
+      <!-- Team detail panel -->
+      <div id="teamPanelArea"></div>
+
+    </div>
+
+  </div>
+</div>
+</div><!-- /app -->
+
+<!-- TEAM PANEL OVERLAY (사이드바 팀 클릭) — 오른쪽 슬라이드 패널 -->
+<div id="teamPanelOverlay" onclick="closeTeamPanelOverlay(event)"></div>
+<div id="teamPanelSlide" onclick="event.stopPropagation()">
+  <div id="teamPanelSlideHead">
+    <h3 id="overlayPanelTitle">팀 상세</h3>
+    <button onclick="closeTeamPanelOverlay()">✕</button>
+  </div>
+  <div id="overlayPanelBody"></div>
+</div>
+<style>
+/* 오른쪽 슬라이드 패널 */
+#teamPanelOverlay {
+  position: fixed; inset: 0; z-index: 200;
+  background: rgba(11,27,46,.38);
+  visibility: hidden; opacity: 0;
+  transition: opacity .22s ease, visibility .22s ease;
+}
+#teamPanelOverlay.open { visibility: visible; opacity: 1; }
+
+#teamPanelSlide {
+  position: fixed; top: 0; right: 0; z-index: 201;
+  width: 50%; min-width: 440px; height: 100vh;
+  background: var(--card);
+  border-left: 2.5px solid var(--blue-l);
+  box-shadow: -12px 0 60px rgba(0,0,0,.24);
+  display: flex; flex-direction: column; overflow: hidden;
+  transform: translateX(100%);
+  transition: transform .24s cubic-bezier(.22,.61,.36,1);
+}
+#teamPanelOverlay.open + #teamPanelSlide { transform: translateX(0); }
+
+#teamPanelSlideHead {
+  flex-shrink: 0;
+  padding: 15px 20px 12px;
+  border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; gap: 10px;
+  background: var(--card);
+}
+#teamPanelSlideHead h3 {
+  font-size: 15px; font-weight: 700; color: var(--navy); flex: 1;
+}
+#teamPanelSlideHead button {
+  background: none; border: none; font-size: 18px;
+  color: var(--muted); cursor: pointer; line-height: 1;
+  padding: 2px 6px; border-radius: 4px;
+}
+#teamPanelSlideHead button:hover { background: var(--bg); color: var(--text); }
+
+#overlayPanelBody {
+  flex: 1; overflow-y: auto; padding: 16px 22px;
+}
+</style>
+
+
+<div class="overlay" id="dayOverlay" onclick="closeDayModal(event)">
+  <div class="modal" onclick="event.stopPropagation()">
+    <div class="modal-head">
+      <h3 id="dayTitle">날짜</h3>
+      <button class="modal-close" onclick="closeDayModal()">✕</button>
+    </div>
+    <div class="modal-body" id="dayBody"></div>
+  </div>
+</div>
+
+<!-- BOOKING MODAL -->
+<div class="overlay" id="bkOverlay" onclick="closeBkModal(event)">
+  <div class="booking-modal" onclick="event.stopPropagation()">
+    <div class="modal-head">
+      <h3 id="bkTitle">교실 예약</h3>
+      <button class="modal-close" onclick="closeBkModal()">✕</button>
+    </div>
+    <div class="modal-body" id="bkBody"></div>
+  </div>
+</div>
+
+<script>
+/* ══════════════════════════════════════════════
+   GOOGLE SHEETS 연동 레이어
+   ─────────────────────────────────────────────
+   SHEET_API_URL 에 Apps Script 웹앱 배포 URL 입력.
+   비어있으면 로컬 메모리 모드로 동작(기존 v8과 동일).
+══════════════════════════════════════════════ */
+let SHEET_API_URL = localStorage.getItem('sheetApiUrl') || '';
+
+function promptSetApiUrl() {
+  const url = prompt(
+    '📋 Apps Script 웹앱 배포 URL을 입력하세요.\n\n' +
+    '구글 시트 → 확장 프로그램 → Apps Script → 배포 → 웹앱 URL\n\n' +
+    '현재 URL:', SHEET_API_URL
+  );
+  if (url === null) return;
+  const trimmed = url.trim();
+  SHEET_API_URL = trimmed;
+  if (trimmed) {
+    localStorage.setItem('sheetApiUrl', trimmed);
+    setSyncStatus('loading', '연결 확인 중...');
+    loadFromSheet();
+  } else {
+    localStorage.removeItem('sheetApiUrl');
+    setSyncStatus('off', '');
+    document.getElementById('sheetBanner').style.display='flex';
+    document.getElementById('btnSaveAll').style.display='none';
+  }
+}
+
+function setSyncStatus(state, msg) {
+  const el = document.getElementById('syncStatus');
+  const banner = document.getElementById('sheetBanner');
+  const saveBtn = document.getElementById('btnSaveAll');
+  if (state === 'off') {
+    el.style.display = 'none';
+    return;
+  }
+  el.style.display = 'flex';
+  if (state === 'loading') {
+    el.style.background = '#EFF6FF'; el.style.color = '#1E40AF';
+    el.textContent = '⏳ ' + msg;
+  } else if (state === 'ok') {
+    el.style.background = '#D1FAE5'; el.style.color = '#065F46';
+    el.textContent = '✅ ' + msg;
+    banner.style.display = 'none';
+    saveBtn.style.display = 'inline-flex';
+    setTimeout(()=>{ el.style.background=''; el.style.color=''; el.textContent='☁️ 시트 연동'; el.style.display='flex'; }, 3000);
+  } else if (state === 'error') {
+    el.style.background = '#FEE2E2'; el.style.color = '#991B1B';
+    el.textContent = '❌ ' + msg;
+    setTimeout(()=>{ if(SHEET_API_URL) { el.textContent='☁️ 연동 오류'; el.style.background='#FEE2E2'; } }, 3000);
+  } else if (state === 'syncing') {
+    el.style.background = '#EFF6FF'; el.style.color = '#1E40AF';
+    el.textContent = '🔄 ' + msg;
+  } else if (state === 'saved') {
+    el.style.background = '#D1FAE5'; el.style.color = '#065F46';
+    el.textContent = '☁️ 저장됨';
+    setTimeout(()=>{ el.textContent='☁️ 시트 연동'; el.style.background=''; el.style.color=''; }, 2000);
+  }
+}
+
+async function apiGet(params) {
+  if (!SHEET_API_URL) return null;
+  const url = SHEET_API_URL + '?' + new URLSearchParams(params).toString();
+  const resp = await fetch(url);
+  if (!resp.ok) throw new Error('HTTP ' + resp.status);
+  return await resp.json();
+}
+
+async function apiPost(body) {
+  if (!SHEET_API_URL) return null;
+  const resp = await fetch(SHEET_API_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'text/plain' },
+    body: JSON.stringify(body),
+  });
+  if (!resp.ok) throw new Error('HTTP ' + resp.status);
+  return await resp.json();
+}
+
+// ── 시트에서 전체 데이터 불러오기 ──────────────────
+async function loadFromSheet() {
+  if (!SHEET_API_URL) return;
+  setSyncStatus('loading', '데이터 불러오는 중...');
+  try {
+    const data = await apiGet({ action: 'load' });
+    if (data.error) throw new Error(data.error);
+
+    // 예약 데이터 복원
+    if (data.reservations && typeof data.reservations === 'object') {
+      reservations = data.reservations;
+    }
+    // 팀 데이터 복원
+    if (Array.isArray(data.teams)) {
+      teams = data.teams;
+      nextTeamId = Math.max(...teams.map(t => t.id || 0), 0) + 1;
+    }
+    // 과 데이터 복원
+    if (Array.isArray(data.depts)) {
+      depts = data.depts;
+    }
+
+    setSyncStatus('ok', '불러오기 완료');
+    refreshDeptSelect();
+    renderSidebarTree();
+    renderCalendar();
+    if (currentPage === 'teams') { renderDeptGrid(); renderTeamGrid(); }
+  } catch(e) {
+    setSyncStatus('error', '불러오기 실패: ' + e.message);
+  }
+}
+
+// ── 예약 하나 저장 ──────────────────────────────────
+async function syncReservation(key, rec) {
+  if (!SHEET_API_URL) return;
+  setSyncStatus('syncing', '저장 중...');
+  try {
+    const result = await apiPost({ action: 'saveReservation', data: { key, ...rec } });
+    if (result && result.error) throw new Error(result.error);
+    setSyncStatus('saved', '');
+  } catch(e) {
+    setSyncStatus('error', '저장 실패');
+    console.error('syncReservation error:', e);
+  }
+}
+
+// ── 팀·과 전체 저장 ────────────────────────────────
+async function saveAllToSheet() {
+  if (!SHEET_API_URL) { promptSetApiUrl(); return; }
+  setSyncStatus('syncing', '전체 저장 중...');
+  try {
+    await apiPost({ action: 'saveTeams', teams });
+    await apiPost({ action: 'saveDepts', depts });
+    setSyncStatus('saved', '전체 저장 완료');
+  } catch(e) {
+    setSyncStatus('error', '저장 실패: ' + e.message);
+  }
+}
+
+/* ══════════════════════════════════════════════
+   DATA MODEL
+══════════════════════════════════════════════ */
+const FIXED_EVENTS = [
+  { key:'ooca1',    label:'1학기 OOCA',      short:'1학기 OOCA',  cls:'ev-ooca1', range:'none', halfDay:true },
+  { key:'brk',      label:'Academic Break',  short:'Acad.Break',  cls:'ev-break', range:'fixed', days:5 },
+  { key:'imm2',     label:'2학기 Immersion', short:'2학기 Imm',   cls:'ev-imm2',  range:'fixed', days:2 },
+  { key:'ooca2',    label:'2학기 OOCA',      short:'2학기 OOCA',  cls:'ev-ooca2', range:'none', halfDay:true },
+  { key:'imm3',     label:'3학기 Immersion', short:'3학기 Imm',   cls:'ev-imm3',  range:'fixed', days:2 },
+  { key:'ooca3',    label:'3학기 OOCA',      short:'3학기 OOCA',  cls:'ev-ooca3', range:'none', halfDay:true },
+  { key:'cookery',  label:'Cookery',         short:'Cookery',     cls:'ev-cookery',range:'none' },
+  { key:'dlpt',     label:'DLPT',            short:'DLPT후 공실', cls:'ev-dlpt',  range:'dlpt' },
+];
+
+const PERIODS = ['0교시','1교시','2교시','3교시','4교시','5교시','6교시','7교시','8교시'];
+
+// Departments: A~F default
+let depts = [
+  { code:'A', name:'A과' },
+  { code:'B', name:'B과' },
+  { code:'C', name:'C과' },
+  { code:'D', name:'D과' },
+  { code:'E', name:'E과' },
+  { code:'F', name:'F과' },
+];
+
+// Teams: each dept has teams 1~5 by default
+// teamName = 'K' + deptCode + teamNum  → KA1, KC3, KF5
+let teams = [];
+let nextTeamId = 1;
+
+// Initialize default teams (A~F, teams 1~5)
+(function initDefaultTeams(){
+  ['A','B','C','D','E','F'].forEach(dc=>{
+    [1,2,3,4,5].forEach(num=>{
+      teams.push({
+        id: nextTeamId++,
+        deptCode: dc,
+        teamNum: num,
+        name: `K${dc}${num}`,
+        classrooms: ['','',''],
+        events: {ooca1:'',brk:'',imm2:'',ooca2:'',imm3:'',ooca3:'',cookery:'',dlpt:''},
+        oocaHalfDay: {ooca1:'', ooca2:'', ooca3:''},
+        customEvents: [],
+      });
+    });
+  });
+})();
+
+// reservations: { "YYYY-MM-DD|room|period" : { teamName, bookedAt, history:[...] } }
+// history entries: { action:'add'|'cancel'|'edit', teamName, by, ts }
+let reservations = {};
+
+let currentPage = 'calendar';
+let selectedTeamId = null;
+let selectedDeptCode = null;
+
+let calYear = new Date().getFullYear();
+let calMonth = new Date().getMonth();
+let calView = 'month';
+let calWeekStart = (function(){
+  const d = new Date(); d.setDate(d.getDate()-d.getDay()); return fmt(d);
+})();
+let pendingBk = null; // {ds, room, pi, isEdit}
+
+/* ══════════════════════════════════════════════
+   UTILS
+══════════════════════════════════════════════ */
+function fmt(d) {
+  if (!d) return '';
+  if (typeof d === 'string') d = new Date(d);
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+}
+function fmtKo(d) {
+  if (!d) return '';
+  if (typeof d === 'string') d = new Date(d+'T00:00:00');
+  const dn=['일','월','화','수','목','금','토'];
+  const yy=String(d.getFullYear()).slice(-2);
+  const mm=String(d.getMonth()+1).padStart(2,'0');
+  const dd=String(d.getDate()).padStart(2,'0');
+  return `${mm}/${dd}/${yy}(${dn[d.getDay()]})`;
+}
+function fmtTs() {
+  const n=new Date();
+  return `${String(n.getMonth()+1).padStart(2,'0')}/${String(n.getDate()).padStart(2,'0')} ${String(n.getHours()).padStart(2,'0')}:${String(n.getMinutes()).padStart(2,'0')}`;
+}
+function addDays(ds, n) {
+  const d = new Date(ds+'T00:00:00'); d.setDate(d.getDate()+n); return fmt(d);
+}
+function dlptRange(ds) {
+  if (!ds) return [];
+  const d = new Date(ds+'T00:00:00'); d.setDate(d.getDate()+1);
+  while (d.getDay() !== 4) d.setDate(d.getDate()+1);
+  return Array.from({length:7}, (_,i) => { const r=fmt(d); d.setDate(d.getDate()+1); return r; });
+}
+function getEventDates(team, key) {
+  const val = team.events[key]; if (!val) return [];
+  const def = FIXED_EVENTS.find(e=>e.key===key); if (!def) return [];
+  if (def.range==='none') return [val];
+  if (def.range==='fixed') return Array.from({length:def.days},(_,i)=>addDays(val,i));
+  if (def.range==='dlpt') return dlptRange(val);
+  return [val];
+}
+function getTeam(id) { return teams.find(t=>t.id===id); }
+function evCountForTeam(t) {
+  let n = FIXED_EVENTS.filter(e=>t.events[e.key]).length;
+  n += t.customEvents.filter(ce=>ce.date&&ce.label).length;
+  return n;
+}
+
+/* Date input helpers */
+function isoToMMDDYY(iso) {
+  if (!iso) return '';
+  const [y,m,d] = iso.split('-');
+  return `${m}/${d}/${y.slice(-2)}`;
+}
+function mmddyyToIso(str) {
+  if (!str) return '';
+  const parts = str.trim().split('/');
+  if (parts.length !== 3) return '';
+  const m = parts[0].padStart(2,'0');
+  const d = parts[1].padStart(2,'0');
+  const yy = parts[2].padStart(2,'0');
+  const y = '20' + yy;
+  const iso = `${y}-${m}-${d}`;
+  if (isNaN(new Date(iso+'T00:00:00').getTime())) return '';
+  return iso;
+}
+function makeDateInput(isoVal, onChangeCall, extraStyle='') {
+  const display = isoToMMDDYY(isoVal);
+  return `<input class="ev-date-inp" type="text" value="${display}" placeholder="MM/DD/YY"
+    style="width:82px;${extraStyle}"
+    oninput="handleDateInput(this)"
+    onblur="handleDateBlur(this,'${onChangeCall}')">`;
+}
+function handleDateInput(el) {
+  let v = el.value.replace(/[^0-9]/g,'');
+  if (v.length > 6) v = v.slice(0,6);
+  let out = '';
+  if (v.length <= 2) out = v;
+  else if (v.length <= 4) out = v.slice(0,2)+'/'+v.slice(2);
+  else out = v.slice(0,2)+'/'+v.slice(2,4)+'/'+v.slice(4);
+  el.value = out;
+  try { el.setSelectionRange(out.length, out.length); } catch(e){}
+}
+function handleDateBlur(el, callStr) {
+  const raw = el.value.trim();
+  function fireCall(isoVal) {
+    // Parse callStr like "updateEvDate(id,'key',__VAL__)" and call directly
+    const m = callStr.match(/^(\w+)\((.+),__VAL__\)$/);
+    if (m) {
+      const fnName = m[1];
+      const argsStr = m[2];
+      // Evaluate the arg list safely
+      try {
+        const argList = eval('[' + argsStr + ']');
+        window[fnName](...argList, isoVal);
+      } catch(e) { console.error('fireCall error', e); }
+    }
+  }
+  if (raw === '') { fireCall(''); el.style.borderColor=''; return; }
+  let normalized = raw;
+  if (/^\d{6}$/.test(raw)) normalized = raw.slice(0,2)+'/'+raw.slice(2,4)+'/'+raw.slice(4);
+  else if (/^\d{8}$/.test(raw)) {
+    const y=raw.slice(0,4),m=raw.slice(4,6),d=raw.slice(6,8);
+    normalized = m+'/'+d+'/'+y.slice(-2);
+  }
+  const iso = mmddyyToIso(normalized);
+  if (iso) { el.value=isoToMMDDYY(iso); el.style.borderColor=''; fireCall(iso); }
+  else { el.style.borderColor='var(--red)'; setTimeout(()=>{ el.style.borderColor=''; },1500); }
+}
+
+/* ══════════════════════════════════════════════
+   NAVIGATION
+══════════════════════════════════════════════ */
+function showPage(p) {
+  document.querySelectorAll('.page').forEach(x=>x.classList.remove('active'));
+  document.querySelectorAll('.nav-btn').forEach(x=>x.classList.remove('active'));
+  document.getElementById('page-'+p).classList.add('active');
+  document.getElementById('nav-'+p).classList.add('active');
+  const labels = {teams:'팀 관리', calendar:'캘린더'};
+  document.getElementById('topbarTitle').textContent = labels[p]||p;
+  currentPage = p;
+  if (p==='calendar') renderCalendar();
+  if (p==='teams') { renderDeptGrid(); renderTeamGrid(); refreshDeptSelect(); }
+}
+
+/* ══════════════════════════════════════════════
+   DEPT MANAGEMENT
+══════════════════════════════════════════════ */
+function addDept() {
+  const code = document.getElementById('nDeptCode').value.trim().toUpperCase();
+  const name = document.getElementById('nDeptName').value.trim();
+  if (!code) { alert('과 코드를 입력하세요.'); return; }
+  if (depts.find(d=>d.code===code)) { alert('이미 존재하는 과 코드입니다.'); return; }
+  depts.push({code, name: name||code+'과'});
+  document.getElementById('nDeptCode').value='';
+  document.getElementById('nDeptName').value='';
+  renderDeptGrid();
+  renderSidebarTree();
+  refreshDeptSelect();
+  saveAllToSheet();
+}
+
+function removeDept(code) {
+  if (!confirm(`'${code}과'를 삭제하시겠습니까? 소속 팀도 모두 삭제됩니다.`)) return;
+  depts = depts.filter(d=>d.code!==code);
+  teams = teams.filter(t=>t.deptCode!==code);
+  if (selectedDeptCode===code) selectedDeptCode=null;
+  renderDeptGrid();
+  renderTeamGrid();
+  renderSidebarTree();
+  refreshDeptSelect();
+  if (currentPage==='calendar') renderCalendar();
+  saveAllToSheet();
+}
+
+function selectDept(code) {
+  selectedDeptCode = (selectedDeptCode===code) ? null : code;
+  renderDeptGrid();
+  renderTeamGrid();
+}
+
+function renderDeptGrid() {
+  const g = document.getElementById('deptGrid');
+  if (!g) return;
+  if (depts.length===0) {
+    g.innerHTML = `<div class="empty-state" style="grid-column:1/-1;"><div class="es-icon">🏛️</div>등록된 과가 없습니다.</div>`;
+    return;
+  }
+  g.innerHTML = depts.map(d=>{
+    const teamCount = teams.filter(t=>t.deptCode===d.code).length;
+    return `<div class="dept-card ${selectedDeptCode===d.code?'selected':''}" onclick="selectDept('${d.code}')">
+      <div class="dc-name">K${d.code}</div>
+      <div class="dc-meta">${d.name} · ${teamCount}팀</div>
+      <div style="margin-top:8px;">
+        <button class="btn btn-sm btn-danger" style="font-size:11px;" onclick="event.stopPropagation();requireAdmin(()=>removeDept('${d.code}'))">삭제</button>
+      </div>
+    </div>`;
+  }).join('');
+
+  // Update team section title
+  const titleEl = document.getElementById('teamSectionTitle');
+  if (titleEl) {
+    if (selectedDeptCode) {
+      const dept = depts.find(d=>d.code===selectedDeptCode);
+      titleEl.innerHTML = `K${selectedDeptCode} (${dept?dept.name:''}) 팀 목록 <span style="font-weight:400;text-transform:none;letter-spacing:0;color:var(--light);">— 카드 클릭 시 행사 설정</span>`;
+    } else {
+      titleEl.innerHTML = `전체 팀 목록 · 교실 · 행사 현황 <span style="font-weight:400;text-transform:none;letter-spacing:0;color:var(--light);">— 카드 클릭 시 행사 설정</span>`;
+    }
+  }
+}
+
+function refreshDeptSelect() {
+  const sel = document.getElementById('nTeamDept');
+  if (!sel) return;
+  sel.innerHTML = depts.map(d=>`<option value="${d.code}">K${d.code} (${d.name})</option>`).join('');
+}
+
+/* ══════════════════════════════════════════════
+   TEAM MANAGEMENT
+══════════════════════════════════════════════ */
+function addTeam() {
+  const deptCode = document.getElementById('nTeamDept').value.trim();
+  const teamNum = document.getElementById('nTeamNum').value.trim();
+  if (!deptCode) { alert('소속 과를 선택하세요.'); return; }
+  if (!teamNum) { alert('팀 번호를 입력하세요.'); return; }
+  const name = `K${deptCode}${teamNum}`;
+  if (teams.find(t=>t.name===name)) { alert(`${name}은 이미 존재하는 팀입니다.`); return; }
+  const cls1 = document.getElementById('nCls1') ? document.getElementById('nCls1').value.trim() : '';
+  const cls2 = document.getElementById('nCls2') ? document.getElementById('nCls2').value.trim() : '';
+  const cls3 = document.getElementById('nCls3') ? document.getElementById('nCls3').value.trim() : '';
+  const t = {
+    id: nextTeamId++, deptCode, teamNum, name,
+    classrooms: [cls1, cls2, cls3],
+    events: {ooca1:'',brk:'',imm2:'',ooca2:'',imm3:'',ooca3:'',cookery:'',dlpt:''},
+    oocaHalfDay: {ooca1:'', ooca2:'', ooca3:''},
+    customEvents: [],
+  };
+  teams.push(t);
+  teams.sort((a,b)=> a.deptCode.localeCompare(b.deptCode) || (parseInt(a.teamNum)||0)-(parseInt(b.teamNum)||0));
+  ['nTeamNum','nCls1','nCls2','nCls3'].forEach(id=>{ const el=document.getElementById(id); if(el) el.value=''; });
+  selectedDeptCode = deptCode; // 추가한 과를 자동 선택
+  renderDeptGrid();
+  renderTeamGrid();
+  renderSidebarTree();
+  openTeamPanel(t.id);
+  saveAllToSheet();
+}
+
+function removeTeam(id) {
+  if (!confirm('팀을 삭제하시겠습니까?')) return;
+  teams = teams.filter(t=>t.id!==id);
+  if (selectedTeamId===id) { selectedTeamId=null; document.getElementById('teamPanelArea').innerHTML=''; }
+  renderTeamGrid();
+  renderSidebarTree();
+  if (currentPage==='calendar') renderCalendar();
+  saveAllToSheet();
+}
+
+function renderTeamGrid() {
+  const g = document.getElementById('teamGrid');
+  if (!g) return;
+  const filtered = selectedDeptCode ? teams.filter(t=>t.deptCode===selectedDeptCode) : teams;
+  if (filtered.length===0) {
+    g.innerHTML = `<div class="empty-state" style="grid-column:1/-1;"><div class="es-icon">👥</div>팀이 없습니다.</div>`;
+    return;
+  }
+  g.innerHTML = filtered.map(t=>{
+    const evTags = FIXED_EVENTS
+      .filter(e=>t.events[e.key])
+      .map(e=>`<span class="ev-chip ${e.cls}" style="font-size:9px;padding:1px 5px;">${e.short}</span>`)
+      .join('');
+    const customTags = t.customEvents.filter(ce=>ce.date&&ce.label)
+      .map(ce=>`<span class="ev-chip ev-custom" style="font-size:9px;padding:1px 5px;">${ce.label}</span>`)
+      .join('');
+    return `
+    <div class="team-card ${selectedTeamId===t.id?'selected':''}" onclick="openTeamPanel(${t.id})">
+      <div class="tc-name">${t.name}</div>
+      <div class="tc-rooms">${t.classrooms.filter(Boolean).join(' · ')||'교실 미지정'}</div>
+      ${evTags||customTags ? `<div class="tc-events">${evTags}${customTags}</div>` : `<div class="tc-ev-count"><span style="color:var(--light);font-size:10px;">행사 미입력</span></div>`}
+    </div>`}).join('');
+}
+
+function renderSidebarTree() {
+  const el = document.getElementById('sidebarTree');
+  el.innerHTML = depts.map(d=>{
+    const dTeams = teams.filter(t=>t.deptCode===d.code);
+    const isOpen = dTeams.some(t=>t.id===selectedTeamId) || selectedDeptCode===d.code;
+    return `<div class="sb-dept ${isOpen?'open':''}" id="sbdept_${d.code}">
+      <div class="sb-dept-label" onclick="toggleSbDept('${d.code}')">
+        <span>K${d.code}</span>
+        <span style="font-size:10px;color:rgba(255,255,255,.25);">${d.name}</span>
+        <span class="arrow">▶</span>
+      </div>
+      <div class="sb-dept-teams">
+        ${dTeams.map(t=>{
+          const cls = t.classrooms.filter(Boolean);
+          return `<button class="sb-team-btn ${selectedTeamId===t.id?'active':''}"
+            onclick="openTeamPanelOverlay(${t.id})">${t.name}${cls.length ? ' ('+cls.join('·')+')' : ''}
+          </button>`;
+        }).join('')}
+        ${dTeams.length===0?`<span style="font-size:10px;color:rgba(255,255,255,.2);padding:3px 10px;display:block;">팀 없음</span>`:''}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function toggleSbDept(code) {
+  const el = document.getElementById('sbdept_'+code);
+  if (el) el.classList.toggle('open');
+}
+
+/* ══════════════════════════════════════════════
+   TEAM PANEL OVERLAY (사이드바 팀 클릭 시)
+══════════════════════════════════════════════ */
+function openTeamPanelOverlay(id) {
+  selectedTeamId = id;
+  renderSidebarTree();
+  document.getElementById('teamPanelOverlay').classList.add('open');
+  document.getElementById('teamPanelSlide').style.transform = 'translateX(0)';
+  renderTeamPanelInOverlay(id);
+}
+
+function closeTeamPanelOverlay(e) {
+  if (e && e.target !== document.getElementById('teamPanelOverlay')) return;
+  document.getElementById('teamPanelOverlay').classList.remove('open');
+  document.getElementById('teamPanelSlide').style.transform = 'translateX(100%)';
+  selectedTeamId = null;
+  renderSidebarTree();
+}
+
+function renderTeamPanelInOverlay(id) {
+  const t = getTeam(id); if (!t) return;
+  const area = document.getElementById('overlayPanelBody');
+  // Update title in header
+  const titleEl = document.getElementById('overlayPanelTitle');
+  if (titleEl) titleEl.textContent = `${t.name} 팀 상세`;
+  area.innerHTML = `
+  <div class="team-panel" id="tp_${id}" style="border:none;padding:0;animation:none;">
+    <div class="tp-header">
+      <span class="tp-badge">${t.name}</span>
+      <div class="tp-meta">
+        <div style="font-size:12px;color:var(--muted);margin-bottom:4px;">K${t.deptCode} · 팀${t.teamNum}</div>
+        <div class="tp-cls-row">
+          ${[0,1,2].map(i=>`<input class="tp-cls-inp" placeholder="교실${i+1}" value="${t.classrooms[i]||''}"
+            oninput="updateCls(${id},${i},this.value)" maxlength="10">`).join('')}
+          <span class="tp-cls-hint">교실 직접 수정</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="ev-section-title">행사 날짜 설정</div>
+    <div class="ev-rows" id="evRows_${id}"></div>
+    <div id="dlptRow_${id}"></div>
+
+    <hr class="divider">
+    <div class="ev-section-title" style="display:flex;align-items:center;gap:8px;">
+      추가 행사
+      <span style="font-size:11px;font-weight:400;color:var(--light);text-transform:none;letter-spacing:0;">(최대 10개)</span>
+    </div>
+    <div id="customArea_${id}"></div>
+    <div id="customAddBtn_${id}"></div>
+
+    <hr class="divider">
+    <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-top:4px;">
+      <button class="btn btn-sm btn-danger" style="font-size:12px;" onclick="requireAdmin(()=>removeTeam(${id}))">🗑 팀 삭제</button>
+      <div style="display:flex;gap:8px;">
+        <button class="btn btn-sm btn-ghost" onclick="closeTeamPanelOverlay()">닫기</button>
+        <button class="btn btn-sm btn-primary"
+          style="background:#1A4FA0;color:#fff;border-color:#1A4FA0;font-weight:700;padding:5px 16px;"
+          onclick="saveTeamPanel(${id})">전체 저장</button>
+      </div>
+    </div>
+  </div>`;
+
+  renderEvRows(id);
+  renderCustomArea(id);
+}
+
+
+function openTeamPanel(id) {
+  selectedTeamId = id;
+  renderTeamGrid();
+  renderSidebarTree();
+  renderTeamPanel(id);
+  setTimeout(()=>{
+    const el = document.getElementById('teamPanelArea');
+    if (el) el.scrollIntoView({behavior:'smooth', block:'nearest'});
+  }, 50);
+}
+
+function renderTeamPanel(id) {
+  const t = getTeam(id); if (!t) return;
+  const area = document.getElementById('teamPanelArea');
+  area.innerHTML = `
+  <div class="team-panel" id="tp_${id}">
+    <div class="tp-header">
+      <span class="tp-badge">${t.name}</span>
+      <div class="tp-meta">
+        <div style="font-size:12px;color:var(--muted);margin-bottom:4px;">K${t.deptCode} · 팀${t.teamNum}</div>
+        <div class="tp-cls-row">
+          ${[0,1,2].map(i=>`<input class="tp-cls-inp" placeholder="교실${i+1}" value="${t.classrooms[i]||''}"
+            oninput="updateCls(${id},${i},this.value)" maxlength="10">`).join('')}
+          <span class="tp-cls-hint">교실 직접 수정</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="ev-section-title">행사 날짜 설정</div>
+    <div class="ev-rows" id="evRows_${id}"></div>
+    <div id="dlptRow_${id}"></div>
+
+    <hr class="divider">
+    <div class="ev-section-title" style="display:flex;align-items:center;gap:8px;">
+      추가 행사
+      <span style="font-size:11px;font-weight:400;color:var(--light);text-transform:none;letter-spacing:0;">(최대 10개)</span>
+    </div>
+    <div id="customArea_${id}"></div>
+    <div id="customAddBtn_${id}"></div>
+
+    <hr class="divider">
+    <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-top:4px;">
+      <button class="btn btn-sm btn-danger" style="font-size:12px;" onclick="requireAdmin(()=>removeTeam(${id}))">🗑 팀 삭제</button>
+      <div style="display:flex;gap:8px;">
+        <button class="btn btn-sm btn-ghost" onclick="closeTeamPanel()">닫기</button>
+        <button class="btn btn-sm btn-primary"
+          style="background:#1A4FA0;color:#fff;border-color:#1A4FA0;font-weight:700;padding:5px 16px;"
+          onclick="saveTeamPanel(${id})">전체 저장</button>
+      </div>
+    </div>
+  </div>`;
+
+  renderEvRows(id);
+  renderCustomArea(id);
+}
+
+function closeTeamPanel() {
+  selectedTeamId = null;
+  document.getElementById('teamPanelArea').innerHTML = '';
+  renderTeamGrid();
+  renderSidebarTree();
+}
+
+function saveTeamPanel(id) {
+  const t = getTeam(id); if (!t) return;
+  let hasError = false;
+
+  // Save fixed event date inputs
+  const panel = document.getElementById('tp_'+id);
+  if (!panel) return;
+
+  // Read all ev-date-inp with data-evkey (fixed events)
+  panel.querySelectorAll('input[data-evkey]').forEach(el => {
+    const key = el.getAttribute('data-evkey');
+    const raw = el.value.trim();
+    if (raw === '') {
+      t.events[key] = '';
+      el.style.borderColor = '';
+      return;
+    }
+    let normalized = raw;
+    if (/^\d{6}$/.test(raw)) normalized = raw.slice(0,2)+'/'+raw.slice(2,4)+'/'+raw.slice(4);
+    else if (/^\d{8}$/.test(raw)) {
+      const y=raw.slice(0,4),m=raw.slice(4,6),d=raw.slice(6,8);
+      normalized = m+'/'+d+'/'+y.slice(-2);
+    }
+    const iso = mmddyyToIso(normalized);
+    if (iso) {
+      t.events[key] = iso;
+      el.value = isoToMMDDYY(iso);
+      el.style.borderColor = '';
+    } else {
+      el.style.borderColor = 'var(--red)';
+      hasError = true;
+    }
+  });
+
+  // Read custom event date inputs
+  panel.querySelectorAll('input[data-customidx][data-field="date"]').forEach(el => {
+    const i = parseInt(el.getAttribute('data-customidx'));
+    const raw = el.value.trim();
+    if (!t.customEvents[i]) return;
+    if (raw === '') {
+      t.customEvents[i].date = '';
+      el.style.borderColor = '';
+      return;
+    }
+    let normalized = raw;
+    if (/^\d{6}$/.test(raw)) normalized = raw.slice(0,2)+'/'+raw.slice(2,4)+'/'+raw.slice(4);
+    else if (/^\d{8}$/.test(raw)) {
+      const y=raw.slice(0,4),m=raw.slice(4,6),d=raw.slice(6,8);
+      normalized = m+'/'+d+'/'+y.slice(-2);
+    }
+    const iso = mmddyyToIso(normalized);
+    if (iso) {
+      t.customEvents[i].date = iso;
+      el.value = isoToMMDDYY(iso);
+      el.style.borderColor = '';
+    } else {
+      el.style.borderColor = 'var(--red)';
+      hasError = true;
+    }
+  });
+
+  if (hasError) {
+    alert('날짜 형식이 올바르지 않은 항목이 있습니다.\nMM/DD/YY 형식으로 입력해주세요. (예: 05/12/25)');
+    return;
+  }
+
+  // Re-render rows to update range texts
+  renderEvRows(id);
+  renderCustomArea(id);
+  renderTeamGrid();
+  if (currentPage==='calendar') renderCalendar();
+
+  // Show save confirmation
+  const saveBtn = panel.querySelector('button.btn-primary');
+  if (saveBtn) {
+    const orig = saveBtn.textContent;
+
+    // ☁️ 구글 시트에도 즉시 저장
+    if (SHEET_API_URL) {
+      saveBtn.textContent = '☁️ 저장 중...';
+      saveBtn.disabled = true;
+      apiPost({ action: 'saveTeams', teams })
+        .then(() => {
+          saveBtn.textContent = '✅ 저장됨';
+          saveBtn.style.background = 'var(--green)';
+          saveBtn.style.borderColor = 'var(--green)';
+          setTimeout(()=>{
+            saveBtn.textContent = orig;
+            saveBtn.style.background = '';
+            saveBtn.style.borderColor = '';
+            saveBtn.disabled = false;
+          }, 1500);
+        })
+        .catch(e => {
+          saveBtn.textContent = '❌ 저장 실패';
+          saveBtn.style.background = 'var(--red)';
+          saveBtn.style.borderColor = 'var(--red)';
+          saveBtn.disabled = false;
+          console.error('팀 저장 실패:', e);
+          setTimeout(()=>{
+            saveBtn.textContent = orig;
+            saveBtn.style.background = '';
+            saveBtn.style.borderColor = '';
+          }, 2000);
+        });
+    } else {
+      // 시트 미연동 시 기존 방식
+      saveBtn.textContent = '✅ 저장됨';
+      saveBtn.style.background = 'var(--green)';
+      saveBtn.style.borderColor = 'var(--green)';
+      setTimeout(()=>{
+        saveBtn.textContent = orig;
+        saveBtn.style.background = '';
+        saveBtn.style.borderColor = '';
+      }, 1500);
+    }
+  }
+}
+
+function renderEvRows(id) {
+  const t = getTeam(id);
+  if (!t.oocaHalfDay) t.oocaHalfDay = {ooca1:'', ooca2:'', ooca3:''};
+  if (!t.oocaHalfDay.ooca1) t.oocaHalfDay.ooca1 = t.oocaHalfDay.ooca1 || '';
+
+  function makeHalfDayHtml(evKey) {
+    const hd = t.oocaHalfDay[evKey] || '';
+    return `
+      <span style="font-size:9.5px;color:var(--muted);margin-left:4px;white-space:nowrap;display:flex;align-items:center;gap:4px;">
+        Half-day
+        <label style="display:flex;align-items:center;gap:2px;cursor:pointer;font-size:9.5px;color:var(--muted);">
+          <input type="checkbox" data-hd-team="${id}" data-hd-key="${evKey}" data-hd-val="AM"
+            ${hd==='AM'?'checked':''} onchange="updateOocaHalfDay(${id},'${evKey}','AM',this.checked)"
+            style="margin:0;width:11px;height:11px;cursor:pointer;">AM
+        </label>
+        <label style="display:flex;align-items:center;gap:2px;cursor:pointer;font-size:9.5px;color:var(--muted);">
+          <input type="checkbox" data-hd-team="${id}" data-hd-key="${evKey}" data-hd-val="PM"
+            ${hd==='PM'?'checked':''} onchange="updateOocaHalfDay(${id},'${evKey}','PM',this.checked)"
+            style="margin:0;width:11px;height:11px;cursor:pointer;">PM
+        </label>
+      </span>`;
+  }
+
+  function makeEvRow(ev) {
+    const val = t.events[ev.key]||'';
+    let rangeText = '';
+    if (ev.range==='fixed' && val) rangeText = `~${fmtKo(addDays(val,ev.days-1))}`;
+    const display = isoToMMDDYY(val);
+    const halfDayHtml = ev.halfDay ? makeHalfDayHtml(ev.key) : '';
+    return `<div class="ev-row" style="flex-wrap:wrap;row-gap:4px;">
+      <span class="ev-chip ${ev.cls}">${ev.short}</span>
+      <span class="ev-name">${ev.label}</span>
+      <input class="ev-date-inp" type="text" value="${display}" placeholder="MM/DD/YY"
+        style="width:82px;" data-evkey="${ev.key}" data-teamid="${id}"
+        oninput="handleDateInput(this)">
+      ${halfDayHtml}
+      <span class="ev-range-text" id="rangeText_${id}_${ev.key}">${rangeText}</span>
+    </div>`;
+  }
+
+  // Separate OOCA events vs non-OOCA (excluding dlpt)
+  const oocaKeys = ['ooca1','ooca2','ooca3'];
+  const leftEvents  = FIXED_EVENTS.filter(e => e.key!=='dlpt' && !oocaKeys.includes(e.key));
+  const rightEvents = FIXED_EVENTS.filter(e => oocaKeys.includes(e.key));
+
+  const leftHtml  = leftEvents.map(makeEvRow).join('');
+  const rightHtml = rightEvents.map(makeEvRow).join('');
+
+  // Two-column layout: left = non-OOCA, right = all OOCAs
+  document.getElementById('evRows_'+id).innerHTML = `
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;align-items:start;">
+      <div style="display:flex;flex-direction:column;gap:6px;">
+        <div style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;margin-bottom:2px;">행사</div>
+        ${leftHtml}
+      </div>
+      <div style="display:flex;flex-direction:column;gap:6px;">
+        <div style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;margin-bottom:2px;">OOCA</div>
+        ${rightHtml}
+      </div>
+    </div>`;
+
+  const dlptVal = t.events['dlpt']||'';
+  const dlptRng = dlptRange(dlptVal);
+  const dlptDisplay = isoToMMDDYY(dlptVal);
+  document.getElementById('dlptRow_'+id).innerHTML = `
+    <div class="ev-row-dlpt" style="margin-top:6px;">
+      <span class="ev-chip ev-dlpt">DLPT</span>
+      <span class="ev-name">DLPT 첫날 날짜 <span style="font-size:10px;color:#8B6010;">— 입력 후 그 주 목요일~다음주 수요일 자동 배정</span></span>
+      <input class="ev-date-inp" type="text" value="${dlptDisplay}" placeholder="MM/DD/YY"
+        style="width:82px;" data-evkey="dlpt" data-teamid="${id}"
+        oninput="handleDateInput(this)">
+      <span class="dlpt-range-text" id="rangeText_${id}_dlpt">${dlptRng.length?`→ ${fmtKo(dlptRng[0])} ~ ${fmtKo(dlptRng[dlptRng.length-1])}`:'MM/DD/YY 입력 후 자동 계산'}</span>
+    </div>`;
+}
+
+function updateOocaHalfDay(id, key, val, checked) {
+  const t = getTeam(id); if (!t) return;
+  if (!t.oocaHalfDay) t.oocaHalfDay = {ooca1:'', ooca2:'', ooca3:''};
+  if (checked) {
+    t.oocaHalfDay[key] = val;
+    const panel = document.getElementById('tp_'+id);
+    if (panel) {
+      panel.querySelectorAll(`input[data-hd-key="${key}"]`).forEach(cb => {
+        if (cb.getAttribute('data-hd-val') !== val) cb.checked = false;
+      });
+    }
+  } else {
+    t.oocaHalfDay[key] = '';
+  }
+  if (currentPage==='calendar') renderCalendar();
+}
+
+function renderCustomArea(id) {
+  const t = getTeam(id);
+  const area = document.getElementById('customArea_'+id);
+  const btnArea = document.getElementById('customAddBtn_'+id);
+  if (!area || !btnArea) return;
+  area.innerHTML = t.customEvents.map((ce,i)=>{
+    const display = isoToMMDDYY(ce.date||'');
+    const hd = ce.halfDay || '';
+    return `<div class="custom-ev-row" style="flex-wrap:wrap;row-gap:6px;">
+      <input class="custom-ev-inp custom-ev-name" type="text" placeholder="행사명" value="${ce.label||''}"
+        data-customidx="${i}" data-teamid="${id}" data-field="label"
+        oninput="updateCustom(${id},${i},'label',this.value)">
+      <input class="ev-date-inp" type="text" value="${display}" placeholder="MM/DD/YY"
+        style="width:88px;" data-customidx="${i}" data-teamid="${id}" data-field="date"
+        oninput="handleDateInput(this)">
+      <span style="display:flex;align-items:center;gap:4px;font-size:11px;color:var(--muted);white-space:nowrap;">
+        <label style="display:flex;align-items:center;gap:2px;cursor:pointer;font-size:11px;font-weight:600;">
+          <input type="checkbox" ${hd==='AM'?'checked':''} onchange="updateCustomHalfDay(${id},${i},'AM',this.checked)"
+            style="margin:0;width:12px;height:12px;cursor:pointer;accent-color:var(--blue);">AM
+        </label>
+        <label style="display:flex;align-items:center;gap:2px;cursor:pointer;font-size:11px;font-weight:600;">
+          <input type="checkbox" ${hd==='PM'?'checked':''} onchange="updateCustomHalfDay(${id},${i},'PM',this.checked)"
+            style="margin:0;width:12px;height:12px;cursor:pointer;accent-color:var(--blue);">PM
+        </label>
+      </span>
+      <button class="btn btn-sm btn-primary"
+        style="padding:4px 11px;font-size:11px;font-weight:700;background:#1A4FA0;color:#fff;border-color:#1A4FA0;white-space:nowrap;"
+        onclick="saveCustomEvent(${id},${i},this)">저장</button>
+      <button class="btn btn-sm btn-danger" onclick="removeCustom(${id},${i})">✕</button>
+    </div>`;
+  }).join('');
+  if (t.customEvents.length >= 10) {
+    btnArea.innerHTML = `<div class="custom-max-note">추가 행사는 최대 10개까지 입력 가능합니다.</div>`;
+  } else {
+    btnArea.innerHTML = `<button class="btn btn-sm" onclick="addCustom(${id})">+ 행사 추가</button>`;
+  }
+}
+
+function updateCls(id, i, val) { const t=getTeam(id); if(t) t.classrooms[i]=val; renderSidebarTree(); }
+function updateEvDate(id, key, val) {
+  const t=getTeam(id); if(!t) return;
+  t.events[key]=val; renderEvRows(id); renderTeamGrid();
+  if(currentPage==='calendar') renderCalendar();
+}
+function updateCustomDate(id, i, val) {
+  const t=getTeam(id); if(!t) return;
+  if(t.customEvents[i]) t.customEvents[i]['date']=val;
+  renderTeamGrid(); if(currentPage==='calendar') renderCalendar();
+}
+function updateCustom(id, i, field, val) {
+  const t=getTeam(id); if(!t) return;
+  if(t.customEvents[i]) t.customEvents[i][field]=val;
+  renderTeamGrid(); if(currentPage==='calendar') renderCalendar();
+}
+function updateCustomHalfDay(id, i, val, checked) {
+  const t=getTeam(id); if(!t) return;
+  if(!t.customEvents[i]) return;
+  if (checked) {
+    t.customEvents[i].halfDay = val;
+    // uncheck the other checkbox in same row
+    const area = document.getElementById('customArea_'+id);
+    if (area) {
+      const rows = area.querySelectorAll('.custom-ev-row');
+      if (rows[i]) {
+        rows[i].querySelectorAll('input[type="checkbox"]').forEach(cb => {
+          const lbl = cb.parentElement.textContent.trim();
+          if (lbl !== val) cb.checked = false;
+        });
+      }
+    }
+  } else {
+    t.customEvents[i].halfDay = '';
+  }
+  if(currentPage==='calendar') renderCalendar();
+}
+function saveCustomEvent(id, i, btn) {
+  const t=getTeam(id); if(!t) return;
+  // Read date field from the row
+  const area = document.getElementById('customArea_'+id);
+  if (area) {
+    const rows = area.querySelectorAll('.custom-ev-row');
+    if (rows[i]) {
+      const dateInp = rows[i].querySelector('input.ev-date-inp');
+      if (dateInp) {
+        const raw = dateInp.value.trim();
+        if (raw) {
+          let normalized = raw;
+          if (/^\d{6}$/.test(raw)) normalized = raw.slice(0,2)+'/'+raw.slice(2,4)+'/'+raw.slice(4);
+          else if (/^\d{8}$/.test(raw)) { const y=raw.slice(0,4),m=raw.slice(4,6),d=raw.slice(6,8); normalized=m+'/'+d+'/'+y.slice(-2); }
+          const iso = mmddyyToIso(normalized);
+          if (iso) { t.customEvents[i].date=iso; dateInp.value=isoToMMDDYY(iso); dateInp.style.borderColor=''; }
+          else { dateInp.style.borderColor='var(--red)'; return; }
+        } else { t.customEvents[i].date=''; }
+      }
+      const labelInp = rows[i].querySelector('input.custom-ev-name');
+      if (labelInp) t.customEvents[i].label = labelInp.value;
+    }
+  }
+  renderTeamGrid();
+  if(currentPage==='calendar') renderCalendar();
+  // Visual feedback
+  const orig = btn.textContent;
+  btn.textContent = '저장됨';
+  btn.style.background = '#0D9E6E';
+  btn.style.borderColor = '#0D9E6E';
+  btn.style.color = '#fff';
+  setTimeout(()=>{ btn.textContent=orig; btn.style.background=''; btn.style.borderColor=''; btn.style.color=''; }, 1400);
+  saveAllToSheet();
+}
+function addCustom(id) {
+  const t=getTeam(id); if(!t||t.customEvents.length>=10) return;
+  t.customEvents.push({label:'',date:''}); renderCustomArea(id);
+  saveAllToSheet();
+}
+function removeCustom(id, i) {
+  const t=getTeam(id); if(!t) return;
+  t.customEvents.splice(i,1); renderCustomArea(id);
+  if(currentPage==='calendar') renderCalendar();
+  saveAllToSheet();
+}
+
+/* ══════════════════════════════════════════════
+   ADMIN AUTH SYSTEM
+   ─────────────────────────────────────────────
+   기본 비밀번호: 1234
+   변경하려면 ADMIN_PASSWORD 값을 수정하세요.
+══════════════════════════════════════════════ */
+const ADMIN_PASSWORD = 'KLAS2026!';
+let adminUnlocked = false;
+let _pendingAdminCallback = null;
+
+function toggleAdminLock() {
+  if (adminUnlocked) {
+    // 잠금
+    adminUnlocked = false;
+    updateAdminUI();
+  } else {
+    // 잠금 해제 (비밀번호 확인)
+    _pendingAdminCallback = null;
+    openAdminModal('관리자 인증');
+  }
+}
+
+function requireAdmin(callback) {
+  if (adminUnlocked) {
+    callback();
+    return;
+  }
+  _pendingAdminCallback = callback;
+  openAdminModal('관리자 인증 필요');
+}
+
+function openAdminModal(title) {
+  document.getElementById('adminModalTitle').textContent = title;
+  document.getElementById('adminPwInput').value = '';
+  document.getElementById('adminPwError').style.display = 'none';
+  document.getElementById('adminOverlay').classList.add('open');
+  setTimeout(()=>document.getElementById('adminPwInput').focus(), 80);
+}
+
+function closeAdminModal(e) {
+  if (e && e.target !== document.getElementById('adminOverlay')) return;
+  document.getElementById('adminOverlay').classList.remove('open');
+  _pendingAdminCallback = null;
+}
+
+function confirmAdminPw() {
+  const pw = document.getElementById('adminPwInput').value;
+  if (pw === ADMIN_PASSWORD) {
+    adminUnlocked = true;
+    updateAdminUI();
+    document.getElementById('adminOverlay').classList.remove('open');
+    if (_pendingAdminCallback) {
+      const cb = _pendingAdminCallback;
+      _pendingAdminCallback = null;
+      cb();
+    }
+  } else {
+    document.getElementById('adminPwError').style.display = 'block';
+    document.getElementById('adminPwInput').value = '';
+    document.getElementById('adminPwInput').focus();
+  }
+}
+
+function updateAdminUI() {
+  const badge = document.getElementById('adminBadge');
+  const lockBadge = document.getElementById('adminFormLockBadge');
+  if (adminUnlocked) {
+    badge.className = 'admin-badge unlocked';
+    badge.textContent = '🔓 관리자';
+    if (lockBadge) lockBadge.style.display = 'none';
+  } else {
+    badge.className = 'admin-badge locked';
+    badge.textContent = '🔒 관리자';
+    if (lockBadge) lockBadge.style.display = '';
+  }
+}
+
+/* ══════════════════════════════════════════════
+   CALENDAR
+══════════════════════════════════════════════ */
+function getEventsForDate(ds) {
+  const res = [];
+  teams.forEach(t=>{
+    FIXED_EVENTS.forEach(ev=>{
+      if (getEventDates(t,ev.key).includes(ds))
+        res.push({team:t, evDef:ev, classrooms:t.classrooms.filter(Boolean)});
+    });
+    t.customEvents.forEach(ce=>{
+      if(ce.date && ce.date===ds && ce.label && ce.label.trim())
+        res.push({team:t, evDef:{key:'c_'+ce.label,label:ce.label,short:ce.label,cls:'ev-custom'}, classrooms:t.classrooms.filter(Boolean)});
+    });
+  });
+  return res;
+}
+
+function renderCalendar() {
+  const DAYS_WD=['월','화','수','목','금'];
+  const MONS=['1월','2월','3월','4월','5월','6월','7월','8월','9월','10월','11월','12월'];
+  const todayStr=fmt(new Date());
+
+  document.getElementById('calLegend').innerHTML=
+    FIXED_EVENTS.map(e=>`<div class="leg"><div class="leg-dot ${e.cls}"></div><span>${e.short}</span></div>`).join('')+
+    `<div class="leg"><div class="leg-dot ev-custom"></div><span>추가행사</span></div>`;
+
+  const body=document.getElementById('calBody');
+
+  if(calView==='month'){
+    document.getElementById('calTitle').textContent=`${calYear}년 ${MONS[calMonth]}`;
+    const first=new Date(calYear,calMonth,1);
+    const last=new Date(calYear,calMonth+1,0);
+    // Start from Monday of the week containing the 1st
+    let d=new Date(first);
+    const dow=d.getDay(); // 0=Sun,1=Mon,...
+    if(dow===0) d.setDate(d.getDate()+1); // Sunday → next Monday
+    else if(dow!==1) d.setDate(d.getDate()-(dow-1)); // go back to Monday
+    // If Monday is after the 1st, go back a week
+    if(d>first) d.setDate(d.getDate()-7);
+    let h=`<table class="cal-grid"><thead><tr>`;
+    DAYS_WD.forEach(dn=>{ h+=`<th>${dn}</th>`; });
+    h+=`</tr></thead><tbody>`;
+    let weekCount=0;
+    while(weekCount<6){
+      const weekMon=new Date(d);
+      if(weekMon>last && weekCount>=4) break;
+      h+='<tr>';
+      for(let wi=0;wi<5;wi++){
+        const dd=new Date(d); dd.setDate(dd.getDate()+wi);
+        const ds=fmt(dd), isOther=dd.getMonth()!==calMonth, isToday=ds===todayStr;
+        const evs=getEventsForDate(ds);
+        h+=`<td class="${isOther?'other-month':''} ${isToday?'today':''} ${evs.length?'has-events':''}" onclick="openDayModal('${ds}')">
+          <div class="day-num">${dd.getDate()}</div>`;
+        evs.slice(0,4).forEach(ev=>{h+=`<span class="ev-cal-chip ${ev.evDef.cls}">${ev.team.name} ${ev.evDef.short}</span>`;});
+        if(evs.length>4) h+=`<span class="ev-cal-chip ev-custom">+${evs.length-4}건</span>`;
+        h+=`</td>`;
+      }
+      h+='</tr>';
+      d.setDate(d.getDate()+7);
+      weekCount++;
+    }
+    h+='</tbody></table>';
+    body.innerHTML=h;
+  } else {
+    // Week view: show Mon-Fri only
+    const ws0=new Date(calWeekStart+'T00:00:00');
+    const wsMon=new Date(ws0);
+    // Shift to Monday
+    const d0=wsMon.getDay();
+    if(d0===0) wsMon.setDate(wsMon.getDate()+1);
+    else if(d0!==1) wsMon.setDate(wsMon.getDate()-(d0-1));
+    const wsFri=new Date(wsMon); wsFri.setDate(wsFri.getDate()+4);
+    const wsM=wsMon.getMonth()+1, wsD=wsMon.getDate();
+    const wfM=wsFri.getMonth()+1, wfD=wsFri.getDate(), wfY=wsFri.getFullYear();
+    document.getElementById('calTitle').textContent=`${wfY}년 ${wsM}/${wsD} ~ ${wfM}/${wfD}`;
+    let h=`<table class="cal-grid"><thead><tr>`;
+    for(let i=0;i<5;i++){
+      const dd=new Date(wsMon); dd.setDate(dd.getDate()+i);
+      h+=`<th>${DAYS_WD[i]} ${dd.getMonth()+1}/${dd.getDate()}</th>`;
+    }
+    h+=`</tr></thead><tbody><tr>`;
+    for(let i=0;i<5;i++){
+      const dd=new Date(wsMon); dd.setDate(dd.getDate()+i);
+      const ds=fmt(dd), isToday=ds===todayStr;
+      const evs=getEventsForDate(ds);
+      h+=`<td class="${isToday?'today':''} ${evs.length?'has-events':''}" onclick="openDayModal('${ds}')">
+        <div class="day-num">${dd.getDate()}</div>
+        ${evs.map(ev=>`<span class="ev-cal-chip ${ev.evDef.cls}">${ev.team.name} ${ev.evDef.short}</span>`).join('')}
+      </td>`;
+    }
+    h+='</tr></tbody></table>';
+    body.innerHTML=h;
+  }
+}
+
+function navCal(d){
+  if(calView==='month'){
+    calMonth+=d;
+    if(calMonth>11){calMonth=0;calYear++;}
+    if(calMonth<0){calMonth=11;calYear--;}
+  } else {
+    const ws=new Date(calWeekStart+'T00:00:00');
+    // normalize to Monday
+    const dow=ws.getDay();
+    if(dow===0) ws.setDate(ws.getDate()+1);
+    else if(dow!==1) ws.setDate(ws.getDate()-(dow-1));
+    ws.setDate(ws.getDate()+(d*7));
+    calWeekStart=fmt(ws);
+    calYear=ws.getFullYear();
+    calMonth=ws.getMonth();
+  }
+  renderCalendar();
+}
+
+function setCalView(v){
+  calView=v;
+  if(v==='week'){
+    const d=new Date(calYear,calMonth,1);
+    const today=new Date();
+    const ref=(today.getFullYear()===calYear&&today.getMonth()===calMonth)?today:d;
+    ref.setDate(ref.getDate()-ref.getDay());
+    calWeekStart=fmt(ref);
+  }
+  document.getElementById('vWeek').classList.toggle('active',v==='week');
+  document.getElementById('vMonth').classList.toggle('active',v==='month');
+  renderCalendar();
+}
+
+function goToday(){
+  const today = new Date();
+  calYear = today.getFullYear();
+  calMonth = today.getMonth();
+  if(calView==='week'){
+    const d = new Date(today);
+    const dow = d.getDay();
+    if(dow===0) d.setDate(d.getDate()+1);
+    else if(dow!==1) d.setDate(d.getDate()-(dow-1));
+    calWeekStart = fmt(d);
+  }
+  renderCalendar();
+}
+
+/* ══════════════════════════════════════════════
+   DAY MODAL
+══════════════════════════════════════════════ */
+function openDayModal(ds) {
+  const evs=getEventsForDate(ds);
+  const d=new Date(ds+'T00:00:00');
+  const dn=['일','월','화','수','목','금','토'];
+  document.getElementById('dayTitle').textContent=`${d.getFullYear()}년 ${d.getMonth()+1}월 ${d.getDate()}일 (${dn[d.getDay()]})`;
+  const body=document.getElementById('dayBody');
+
+  if(evs.length===0){
+    body.innerHTML=`<div class="empty-state"><div class="es-icon">📭</div>이 날짜에 등록된 행사가 없습니다.</div>`;
+  } else {
+    body.innerHTML=evs.map(ev=>{
+      const rooms=ev.classrooms;
+      // Determine half-day lock for this event
+      const hdKey = ev.evDef.key; // e.g. 'ooca1', 'ooca2' or 'ooca3'
+      if (!ev.team.oocaHalfDay) ev.team.oocaHalfDay = {ooca1:'', ooca2:'', ooca3:''};
+      const hd = (ev.evDef.halfDay && ev.team.oocaHalfDay) ? (ev.team.oocaHalfDay[hdKey]||'') : '';
+      // AM = 0~4 available, 5~8 blocked; PM = 5~8 available, 0~4 blocked
+      function isPeriodBlocked(pi) {
+        if (!hd) return false;
+        if (hd==='AM') return pi >= 5; // 5~8 blocked
+        if (hd==='PM') return pi <= 4; // 0~4 blocked
+        return false;
+      }
+      let roomsHtml = '';
+      if(rooms.length===0){
+        roomsHtml = `<span style="font-size:11px;color:var(--muted);">교실 미지정</span>`;
+      } else {
+        roomsHtml = rooms.map(r=>{
+          const slots = PERIODS.map((p,pi)=>{
+            const key=`${ds}|${r}|${pi}`;
+            const res=reservations[key];
+            const blocked = isPeriodBlocked(pi);
+            if(blocked){
+              return `<span class="slot-chip blocked" title="${hd==='AM'?'오후 OOCA 시간 — 예약 불가':'오전 OOCA 시간 — 예약 불가'}">${p}</span>`;
+            } else if(res){
+              return `<span class="slot-chip taken" title="클릭하여 수정/취소" onclick="openBkModal('${ds}','${r}',${pi},true)">${p}<br><span style="font-size:8px;">${res.teamName}</span></span>`;
+            } else {
+              return `<span class="slot-chip free" onclick="openBkModal('${ds}','${r}',${pi},false)">${p}</span>`;
+            }
+          }).join('');
+          // Half-day indicator badge
+          const hdBadge = hd ? `<span style="font-size:9px;padding:1px 5px;border-radius:3px;background:${hd==='AM'?'#DBEAFE':'#FCE7F3'};color:${hd==='AM'?'#1E40AF':'#9D174D'};margin-left:6px;">Half-day ${hd}</span>` : '';
+          return `<div class="room-section">
+            <div class="room-label-row">
+              <span class="room-tag">🚪 ${r}호</span>${hdBadge}
+            </div>
+            <div class="slot-row">${slots}</div>
+          </div>`;
+        }).join('');
+      }
+      return `<div class="dei">
+        <div class="dei-head">
+          <span class="ev-chip ${ev.evDef.cls}" style="font-size:11px;padding:2px 7px;">${ev.evDef.label}</span>
+          <span class="dei-team">${ev.team.name}</span>
+        </div>
+        ${roomsHtml}
+      </div>`;
+    }).join('');
+  }
+  document.getElementById('dayOverlay').classList.add('open');
+}
+function closeDayModal(e){
+  if(e&&e.target!==document.getElementById('dayOverlay')) return;
+  document.getElementById('dayOverlay').classList.remove('open');
+}
+
+/* ══════════════════════════════════════════════
+   BOOKING MODAL — 예약 / 수정 / 취소
+══════════════════════════════════════════════ */
+function openBkModal(ds, room, pi, isEdit) {
+  pendingBk = {ds, room, pi, isEdit};
+  const key = `${ds}|${room}|${pi}`;
+  const rec = reservations[key];
+  // Treat as existing only if there's an active (non-cancelled) booking
+  const existing = (rec && !rec.cancelled && rec.teamName) ? rec : null;
+  const d = new Date(ds+'T00:00:00');
+  const body = document.getElementById('bkBody');
+  const title = document.getElementById('bkTitle');
+
+  title.textContent = existing ? `예약 수정 / 취소 — ${room}호 ${PERIODS[pi]}` : `교실 예약 — ${room}호 ${PERIODS[pi]}`;
+
+  // Build history HTML — show ALL history including cancellations
+  function buildHistory(res) {
+    const history = res ? (res.history||[]) : [];
+    if(history.length===0) return '';
+    const entries = history.slice(-50).reverse();
+    const rows = entries.map(h=>`
+      <div class="chg-row">
+        <span class="chg-ts">${h.ts}</span>
+        <span class="chg-badge ${h.action==='add'?'chg-add':h.action==='cancel'?'chg-cancel':'chg-edit'}">${h.action==='add'?'예약':h.action==='cancel'?'취소':'수정'}</span>
+        <span>${h.teamName}</span>
+      </div>`).join('');
+    return `<div class="chg-history">
+      <div class="chg-history-title">📋 변경 이력 (${entries.length}건)</div>
+      ${rows}
+    </div>`;
+  }
+
+  // Pass the full record (even if cancelled) for history display
+  const historyRec = rec || null;
+
+  if(existing) {
+    // Edit/cancel mode
+    body.innerHTML=`
+      <div style="background:var(--blue-pale);border:1px solid var(--blue-l);border-radius:8px;padding:10px 12px;margin-bottom:12px;">
+        <div style="font-size:11px;font-weight:600;color:var(--navy);margin-bottom:4px;">현재 예약 정보</div>
+        <div style="font-size:12px;color:var(--text);">
+          <strong>${d.getMonth()+1}/${d.getDate()}</strong> &nbsp;
+          <strong style="font-family:'IBM Plex Mono',monospace;">${room}호</strong> &nbsp;
+          <strong>${PERIODS[pi]}</strong>
+        </div>
+        <div style="font-size:13px;font-weight:600;color:var(--navy);margin-top:4px;">예약 팀: ${existing.teamName}</div>
+        <div style="font-size:10px;color:var(--muted);margin-top:2px;">예약일시: ${existing.bookedAt}</div>
+      </div>
+      <div class="bk-field">
+        <label>수정할 팀명 (변경 시 입력)</label>
+        <input id="bkTeam" placeholder="${existing.teamName}" value="${existing.teamName}" style="text-transform:uppercase;" oninput="this.value=this.value.toUpperCase()">
+      </div>
+      <div style="display:flex;gap:8px;margin-top:14px;flex-wrap:wrap;">
+        <button class="btn btn-primary" onclick="confirmEditBk()">✏️ 수정하기</button>
+        <button class="btn btn-danger" onclick="confirmCancelBk()">🗑️ 예약 취소</button>
+        <button class="btn btn-ghost" onclick="closeBkModal()">닫기</button>
+      </div>
+      ${buildHistory(historyRec)}`;
+  } else {
+    // New booking mode — show history even if previously cancelled
+    body.innerHTML=`
+      <div style="font-size:11px;color:var(--muted);margin-bottom:12px;">
+        <strong>${d.getMonth()+1}/${d.getDate()}</strong> &nbsp;|&nbsp;
+        <strong style="font-family:'IBM Plex Mono',monospace;">${room}호</strong> &nbsp;|&nbsp;
+        <strong>${PERIODS[pi]}</strong>
+      </div>
+      <div class="bk-field">
+        <label>예약 팀명 *</label>
+        <input id="bkTeam" placeholder="예: KA1" style="text-transform:uppercase;" oninput="this.value=this.value.toUpperCase()">
+      </div>
+      <div style="display:flex;gap:8px;margin-top:14px;">
+        <button class="btn btn-primary" onclick="confirmNewBk()">예약 확정</button>
+        <button class="btn btn-ghost" onclick="closeBkModal()">취소</button>
+      </div>
+      ${buildHistory(historyRec)}`;
+  }
+
+  document.getElementById('bkOverlay').classList.add('open');
+}
+
+function confirmNewBk() {
+  if(!pendingBk) return;
+  const teamName = document.getElementById('bkTeam').value.trim().toUpperCase();
+  if(!teamName) { alert('팀명을 입력하세요.'); return; }
+  const {ds, room, pi} = pendingBk;
+  const key = `${ds}|${room}|${pi}`;
+  const ts = fmtTs();
+  const existing = reservations[key];
+  // Preserve previous history if it exists (e.g. after cancellation)
+  const prevHistory = (existing && existing.history) ? existing.history : [];
+  reservations[key] = {
+    teamName, period: pi, room, dateStr: ds,
+    bookedAt: ts,
+    cancelled: false,
+    history: [...prevHistory, { action:'add', teamName, ts }]
+  };
+  refreshDayModalSlot(ds, room, pi);
+  if(currentPage==='calendar') renderCalendar();
+  document.getElementById('bkOverlay').classList.remove('open');
+  pendingBk = null;
+  // 시트 동기화
+  syncReservation(key, reservations[key]);
+}
+
+function confirmEditBk() {
+  if(!pendingBk) return;
+  const teamName = document.getElementById('bkTeam').value.trim().toUpperCase();
+  if(!teamName) { alert('팀명을 입력하세요.'); return; }
+  const {ds, room, pi} = pendingBk;
+  const key = `${ds}|${room}|${pi}`;
+  const existing = reservations[key];
+  if(!existing) return;
+  const ts = fmtTs();
+  const prevName = existing.teamName;
+  existing.teamName = teamName;
+  existing.bookedAt = ts;
+  existing.cancelled = false;
+  existing.history = existing.history || [];
+  existing.history.push({ action:'edit', teamName: `${prevName} → ${teamName}`, ts });
+  if(existing.history.length > 50) existing.history = existing.history.slice(-50);
+  refreshDayModalSlot(ds, room, pi);
+  if(currentPage==='calendar') renderCalendar();
+  openBkModal(ds, room, pi, true);
+  // 시트 동기화
+  syncReservation(key, existing);
+}
+
+function confirmCancelBk() {
+  if(!pendingBk) return;
+  if(!confirm(`${PERIODS[pendingBk.pi]} 예약을 취소하시겠습니까?`)) return;
+  const {ds, room, pi} = pendingBk;
+  const key = `${ds}|${room}|${pi}`;
+  const existing = reservations[key];
+  if (existing) {
+    const ts = fmtTs();
+    const cancelledTeam = existing.teamName;
+    // Keep the entry but mark as cancelled (preserve full history)
+    existing.history = existing.history || [];
+    existing.history.push({ action:'cancel', teamName: cancelledTeam, ts });
+    if(existing.history.length > 50) existing.history = existing.history.slice(-50);
+    // Remove active booking but keep history record
+    existing.cancelled = true;
+    existing.cancelledAt = ts;
+    existing.cancelledTeam = cancelledTeam;
+    existing.teamName = ''; // Clear active team
+    // 시트 동기화
+    syncReservation(key, existing);
+  }
+  refreshDayModalSlot(ds, room, pi);
+  if(currentPage==='calendar') renderCalendar();
+  // Switch bkModal to new-booking mode
+  openBkModal(ds, room, pi, false);
+}
+
+function refreshDayModalSlot(ds, room, pi) {
+  const dayBody = document.getElementById('dayBody');
+  if (!dayBody) return;
+  const key = `${ds}|${room}|${pi}`;
+  const rec = reservations[key];
+  // Active if exists and not cancelled
+  const res = (rec && !rec.cancelled && rec.teamName) ? rec : null;
+  const p = PERIODS[pi];
+  const chips = dayBody.querySelectorAll('.slot-chip');
+  chips.forEach(chip => {
+    if (chip.classList.contains('blocked')) return; // don't touch blocked chips
+    const oc = chip.getAttribute('onclick') || '';
+    if (oc.includes(`'${ds}'`) && oc.includes(`'${room}'`) && oc.includes(`,${pi},`)) {
+      if (res) {
+        chip.className = 'slot-chip taken';
+        chip.title = '클릭하여 수정/취소';
+        chip.setAttribute('onclick', `openBkModal('${ds}','${room}',${pi},true)`);
+        chip.innerHTML = `${p}<br><span style="font-size:8px;">${res.teamName}</span>`;
+      } else {
+        chip.className = 'slot-chip free';
+        chip.title = '';
+        chip.setAttribute('onclick', `openBkModal('${ds}','${room}',${pi},false)`);
+        chip.innerHTML = p;
+      }
+    }
+  });
+}
+
+function closeBkModal(e){
+  if(e&&e.target!==document.getElementById('bkOverlay')) return;
+  document.getElementById('bkOverlay').classList.remove('open');
+  pendingBk=null;
+}
+
+/* ══════════════════════════════════════════════
+   INIT
+══════════════════════════════════════════════ */
+const now = new Date();
+document.getElementById('topbarDate').textContent = now.toLocaleDateString('ko-KR',{year:'numeric',month:'long',day:'numeric',weekday:'short'});
+document.getElementById('sbDate').textContent = now.toLocaleDateString('ko-KR',{year:'numeric',month:'long',day:'numeric'});
+refreshDeptSelect();
+renderSidebarTree();
+renderCalendar();
+
+// Google Sheets 자동 연동
+if (SHEET_API_URL) {
+  document.getElementById('sheetBanner').style.display = 'none';
+  document.getElementById('btnSaveAll').style.display = 'inline-flex';
+  setSyncStatus('loading', '시트 연결 중...');
+  loadFromSheet();
+}
+</script>
+
+</body>
+</html>
