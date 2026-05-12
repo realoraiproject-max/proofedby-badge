@@ -3,47 +3,18 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta http-equiv="Content-Security-Policy" content="frame-ancestors *;">
-<meta http-equiv="X-Frame-Options" content="ALLOWALL">
 <title>교실 예약 시스템 v9</title>
 
 <style>
 @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@300;400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap');
 
-/* ==================== CARRD IFRAME 최적화 ==================== */
-html, body {
-    height: auto !important;
-    min-height: 100vh;
-    margin: 0;
-    padding: 0;
-    font-size: 14px !important;
-    background: #F2F5FB;
-    overflow-y: auto;
-    -webkit-overflow-scrolling: touch;
-}
-
-* { box-sizing: border-box; }
-
-.app {
-    display: flex;
-    min-height: 100vh;
-    height: auto !important;
-    overflow: visible !important;
-    flex-direction: row;
-    width: 100%;
-}
-
-/* 기존 스타일 */
 :root {
   --navy: #0D1B2E;
   --blue: #1A4FA0;
   --blue-l: #3B7DD8;
   --blue-pale: #EBF2FF;
-  --accent: #F0A500;
   --green: #0D9E6E;
-  --green-pale: #E6F9F3;
   --red: #D94040;
-  --red-pale: #FEF0F0;
   --bg: #F2F5FB;
   --card: #FFFFFF;
   --border: #DDE4EE;
@@ -53,60 +24,69 @@ html, body {
   --sidebar-w: 250px;
 }
 
+/* ==================== CARRD IFRAME 핵심 최적화 ==================== */
+html, body {
+    margin: 0;
+    padding: 0;
+    width: 100%;
+    min-height: 100vh;
+    font-size: 14px;
+    background: var(--bg);
+    color: var(--text);
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+}
+
+.app {
+    display: flex;
+    min-height: 100vh;
+    height: auto !important;
+    overflow: visible !important;
+    width: 100%;
+}
+
 .sidebar { width: var(--sidebar-w); background: var(--navy); flex-shrink: 0; display: flex; flex-direction: column; overflow-y: auto; }
-.main-area { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+.main-area { flex: 1; display: flex; flex-direction: column; }
+.content { flex: 1; overflow-y: auto; padding: 12px 16px; min-height: 700px; }
 .topbar { display: none !important; }
-.content { flex: 1; overflow-y: auto; padding: 12px 16px; min-height: 600px; }
 
-/* 나머지 기존 스타일들 (압축해서 유지) */
-.sb-brand { padding: 18px 16px 12px; border-bottom: 1px solid rgba(255,255,255,.07); }
-.sb-brand h1 { font-size: 13px; font-weight: 600; color: #fff; }
-.sb-section { padding: 8px 10px 4px; }
-.sb-section-label { font-size: 9px; font-weight: 600; color: rgba(255,255,255,.3); letter-spacing: .1em; text-transform: uppercase; padding: 0 8px; margin-bottom: 4px; }
-
-.nav-btn { display: flex; align-items: center; gap: 8px; padding: 8px 10px; border-radius: 6px; cursor: pointer; color: rgba(255,255,255,.5); font-size: 12px; font-weight: 500; transition: all .13s; margin-bottom: 1px; border: none; background: none; width: 100%; text-align: left; }
-.nav-btn:hover { background: rgba(255,255,255,.07); color: rgba(255,255,255,.85); }
-.nav-btn.active { background: var(--blue); color: #fff; }
-
+/* 기본 UI 스타일 */
 .card { background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 16px 18px; margin-bottom: 14px; }
-.btn { padding: 6px 13px; border-radius: 8px; border: 1.5px solid var(--border); background: var(--card); font-size: 12px; cursor: pointer; font-weight: 500; transition: all .15s; }
+.btn { padding: 6px 13px; border-radius: 8px; border: 1.5px solid var(--border); background: var(--card); font-size: 12px; cursor: pointer; font-weight: 500; }
 .btn-primary { background: var(--blue); color: #fff; border-color: var(--blue); }
-.btn-primary:hover { background: var(--navy); }
 .btn-danger { color: var(--red); border-color: #F5A0A0; }
-.btn-danger:hover { background: var(--red-pale); }
 
 .overlay { 
-    position: fixed !important; 
-    inset: 0 !important; 
+    position: fixed; 
+    inset: 0; 
     background: rgba(11,27,46,.45); 
-    z-index: 2147483647 !important; 
+    z-index: 2147483647; 
     display: none; 
     align-items: flex-start; 
     justify-content: center; 
     padding-top: 40px;
-    overflow-y: auto;
 }
 .overlay.open { display: flex; }
 
 .modal, .booking-modal { 
     background: var(--card); 
     border-radius: 12px; 
-    box-shadow: 0 20px 60px rgba(0,0,0,.22); 
-    animation: mIn .18s ease; 
-    max-width: 95vw;
-    max-height: 85vh;
-    overflow-y: auto;
+    max-width: 95vw; 
+    max-height: 85vh; 
+    overflow-y: auto; 
+    box-shadow: 0 20px 60px rgba(0,0,0,.25); 
 }
 
-@keyframes mIn { from{opacity:0;transform:scale(.96) translateY(-8px);} to{opacity:1;transform:scale(1) translateY(0);} }
+/* Carrd / 좁은 화면 대응 */
+@media (max-width: 900px) {
+    .app { flex-direction: column; }
+    .sidebar { width: 100%; height: auto; }
+    .dept-grid, .team-grid { grid-template-columns: 1fr; }
+    .modal, .booking-modal { width: 95vw; margin: 10px; }
+}
 
-/* 캘린더 높이 보장 */
-.cal-grid { min-height: 580px !important; height: auto !important; }
-
-/* 기타 UI */
-.ev-chip { font-weight: bold; padding: 4px 8px; border-radius: 6px; }
+.cal-grid { min-height: 620px !important; }
 </style>
-
 </head>
 <body>
 
@@ -131,13 +111,13 @@ html, body {
   <div class="sb-footer" id="sbDate"></div>
 </div>
 
-<!-- MAIN AREA -->
+<!-- MAIN -->
 <div class="main-area">
   <div class="content">
 
     <!-- PAGE: CALENDAR -->
     <div class="page active" id="page-calendar">
-      <div class="card" style="display:flex;flex-direction:column;min-height:calc(100vh - 120px);">
+      <div class="card" style="display:flex;flex-direction:column;min-height:calc(100vh - 140px);">
         <div class="cal-controls">
           <button class="btn btn-sm" onclick="navCal(-1)">◀</button>
           <span class="cal-title" id="calTitle"></span>
@@ -150,27 +130,77 @@ html, body {
         </div>
         <div class="cal-legend" id="calLegend"></div>
         <div id="calBody" style="flex:1;display:flex;flex-direction:column;"></div>
-        <div style="font-size:10px;color:var(--light);margin-top:8px;">날짜 클릭 → 행사 확인 및 교실 예약 · 교시 클릭 → 예약/취소</div>
       </div>
     </div>
 
     <!-- PAGE: TEAMS -->
     <div class="page" id="page-teams">
-      <!-- (기존 teams 페이지 내용 그대로 유지) -->
-      <!-- ... (너무 길어서 생략했으나, 원본과 동일하게 복사해서 사용) ... -->
-      <!-- 필요하면 말씀해주세요. 여기서는 핵심 수정 위주로 정리했습니다. -->
+      <div class="card">
+        <div class="card-title">과 목록</div>
+        <div class="dept-grid" id="deptGrid"></div>
+      </div>
+      <div class="card" id="teamSection">
+        <div class="card-title" id="teamSectionTitle">전체 팀 목록 · 교실 · 행사 현황</div>
+        <div class="team-grid" id="teamGrid"></div>
+        <div id="teamPanelArea" style="margin-top:12px;"></div>
+      </div>
     </div>
 
   </div>
 </div>
 </div>
 
-<!-- DAY MODAL, BOOKING MODAL 등은 원본 그대로 유지 -->
-<!-- (공간 관계상 생략했으나, 원본 파일의 modal 부분을 그대로 복사해서 넣으세요) -->
+<!-- DAY MODAL -->
+<div class="overlay" id="dayOverlay" onclick="closeDayModal(event)">
+  <div class="modal" onclick="event.stopPropagation()">
+    <div class="modal-head">
+      <h3 id="dayTitle">날짜</h3>
+      <button class="modal-close" onclick="closeDayModal()">✕</button>
+    </div>
+    <div class="modal-body" id="dayBody"></div>
+  </div>
+</div>
+
+<!-- BOOKING MODAL -->
+<div class="overlay" id="bkOverlay" onclick="closeBkModal(event)">
+  <div class="booking-modal" onclick="event.stopPropagation()">
+    <div class="modal-head">
+      <h3 id="bkTitle">교실 예약</h3>
+      <button class="modal-close" onclick="closeBkModal()">✕</button>
+    </div>
+    <div class="modal-body" id="bkBody"></div>
+  </div>
+</div>
 
 <script>
-// 여기에 원본 JavaScript 전체 코드를 그대로 붙여넣으세요.
-// (Google Sheets 연동, 캘린더, 팀 관리 등 모든 스크립트)
+/* ====================== JavaScript ====================== */
+let SHEET_API_URL = localStorage.getItem('sheetApiUrl') || '';
+
+async function apiPost(body) {
+  if (!SHEET_API_URL) return null;
+  try {
+    const resp = await fetch(SHEET_API_URL, {
+      method: 'POST',
+      mode: 'cors',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    });
+    if (!resp.ok) throw new Error('HTTP ' + resp.status);
+    return await resp.json();
+  } catch(e) {
+    console.error('apiPost error:', e);
+    return null;
+  }
+}
+
+// 나머지 JavaScript 코드는 **원본 reservation.html의 <script> 부분 전체**를 복사해서 여기 붙여넣으세요.
+// (renderCalendar, openDayModal, showPage 등 모든 함수 포함)
+
+// INIT
+const now = new Date();
+document.getElementById('sbDate').textContent = now.toLocaleDateString('ko-KR',{year:'numeric',month:'long',day:'numeric'});
+renderSidebarTree();
+renderCalendar();
 </script>
 
 </body>
