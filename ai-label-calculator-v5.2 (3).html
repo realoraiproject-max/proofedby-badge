@@ -1,0 +1,1986 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI Nutrition Label Calculator v5.1</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Barlow:wght@300;400;500;600;700;900&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #F4F2EE;
+  --surface: #FFFFFF;
+  --surface2: #ECEAE5;
+  --ink: #1A1814;
+  --ink2: #6B6760;
+  --ink3: #9E9B96;
+  --border: #D8D5CF;
+  --border2: #C4C1BB;
+  --green: #1B6B3A;
+  --green-bg: #E6F4EC;
+  --green-border: #A8D5BA;
+  --yellow: #8B5E00;
+  --yellow-bg: #FEF3D0;
+  --yellow-border: #F0C84A;
+  --red: #8B1A1A;
+  --red-bg: #FDEAEA;
+  --red-border: #E08080;
+  --blue: #1A4A8B;
+  --blue-bg: #EBF3FF;
+  --blue-border: #90B8E8;
+  --purple: #5B21B6;
+  --purple-bg: #F5F3FF;
+  --purple-border: #C4B5FD;
+  --teal: #0D6E6E;
+  --teal-bg: #ECFDF5;
+  --teal-border: #6EE7B7;
+  --cat-video:  #2563EB;
+  --cat-audio:  #059669;
+  --cat-visual: #D97706;
+  --cat-text:   #7C3AED;
+  --cat-inter:  #DC2626;
+  --cat-info:   #0891B2;
+  --cat-edu:    #DB2777;
+  --cat-ai:     #6D28D9;
+  --cat-civic:  #B45309;
+}
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; }
+body { background: var(--bg); color: var(--ink); font-family: 'Barlow', sans-serif; font-size: 14px; line-height: 1.5; min-height: 100vh; }
+.shell { max-width: 860px; margin: 0 auto; padding: 36px 18px 64px; }
+
+/* ── HEADER ── */
+.hd { border-bottom: 2px solid var(--ink); padding-bottom: 20px; margin-bottom: 28px; display: flex; flex-direction: column; gap: 6px; }
+.hd-label { font-family: 'Space Mono', monospace; font-size: 10px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--ink3); display: flex; align-items: center; gap: 8px; }
+.hd-label::before { content:''; width:20px; height:1px; background:var(--ink3); }
+.hd h1 { font-size: clamp(22px, 4vw, 34px); font-weight: 900; letter-spacing: -0.03em; line-height: 1.05; }
+.hd-sub { font-size: 12px; color: var(--ink2); max-width: 560px; line-height: 1.65; }
+.version-badge { display: inline-flex; align-items: center; gap: 5px; font-family: 'Space Mono', monospace; font-size: 9px; padding: 3px 8px; border-radius: 10px; background: var(--ink); color: #fff; letter-spacing: 0.08em; margin-top: 4px; width: fit-content; }
+
+/* ── SCORE PANEL (2-axis: AI Involvement + Trustworthiness) ── */
+.score-panel {
+  position: sticky; top: 0; z-index: 50;
+  background: #1A1814;
+  border-radius: 12px;
+  padding: 10px 14px;
+  margin-bottom: 24px;
+  display: flex; align-items: center; justify-content: space-between; gap: 10px;
+  box-shadow: 0 4px 24px rgba(0,0,0,0.18);
+  transition: background .4s;
+}
+.score-panel.label-green  { background: #0D4A26; }
+.score-panel.label-yellow { background: #5C3D00; }
+.score-panel.label-red    { background: #5C0F0F; }
+
+.score-axis-wrap { display: flex; align-items: stretch; gap: 0; flex: 1; min-width: 0; }
+.score-divider-v { width: 1px; background: rgba(255,255,255,0.15); margin: 0 16px; flex-shrink: 0; }
+
+.score-main { display: flex; flex-direction: column; gap: 2px; flex: 1; min-width: 0; }
+.score-trust-axis { display: flex; flex-direction: column; gap: 2px; flex: 1; min-width: 0; }
+
+.score-main-label { font-family: 'Space Mono', monospace; font-size: 8px; letter-spacing: 0.14em; text-transform: uppercase; color: rgba(255,255,255,0.55); white-space: nowrap; }
+.score-main-val { display: flex; align-items: baseline; gap: 4px; flex-wrap: wrap; }
+.score-main-num { font-family: 'Space Mono', monospace; font-size: 22px; font-weight: 700; color: #ffffff; line-height: 1; }
+.score-main-name { font-size: 11px; font-weight: 700; color: #ffffff; line-height: 1.2; }
+
+/* Trustworthiness value — big text, color-coded */
+.score-trust-val { font-size: 16px; font-weight: 900; color: rgba(255,255,255,0.5); line-height: 1.1; transition: color .3s; }
+.score-trust-val.tw-none     { color: rgba(255,255,255,0.35); }
+.score-trust-val.tw-low      { color: #FCA5A5; }
+.score-trust-val.tw-moderate { color: #FCD34D; }
+.score-trust-val.tw-high     { color: #86EFAC; }
+.score-trust-val.tw-excellent { color: #4ADE80; }
+
+.score-bar-track { height: 4px; background: rgba(255,255,255,0.15); border-radius: 3px; overflow: hidden; margin-top: 5px; }
+.score-bar-fill { height: 100%; border-radius: 3px; background: rgba(255,255,255,0.6); width: 0%; transition: width .5s cubic-bezier(.4,0,.2,1); }
+.score-panel.label-green  .score-bar-fill { background: #4ADE80; }
+.score-panel.label-yellow .score-bar-fill { background: #FCD34D; }
+.score-panel.label-red    .score-bar-fill { background: #F87171; }
+.trust-fill { background: #60A5FA !important; }
+.score-panel.label-green  .trust-fill { background: #4ADE80 !important; }
+
+.reset-btn { font-family: 'Space Mono', monospace; font-size: 9px; padding: 5px 10px; border-radius: 20px; border: 1px solid rgba(255,255,255,0.4); background: transparent; color: #ffffff; cursor: pointer; letter-spacing: 0.06em; transition: all .15s; white-space: nowrap; flex-shrink: 0; }
+.reset-btn:hover { background: rgba(255,255,255,0.14); }
+
+/* ── STEP LABELS ── */
+.step-label { font-family: 'Space Mono', monospace; font-size: 10px; letter-spacing: 0.15em; text-transform: uppercase; color: var(--ink3); margin-bottom: 10px; display: flex; align-items: center; gap: 8px; }
+.step-label .sn { background: var(--ink); color: #fff; border-radius: 50%; width: 18px; height: 18px; display: flex; align-items: center; justify-content: center; font-size: 9px; }
+
+/* ── CATEGORY GRID ── */
+.cat-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; margin-bottom: 28px; }
+.cat-btn { border: 1.5px solid var(--border); background: var(--surface); border-radius: 10px; padding: 12px 8px; cursor: pointer; transition: all .15s; display: flex; flex-direction: column; align-items: center; gap: 5px; text-align: center; }
+.cat-btn:hover { border-color: var(--border2); transform: translateY(-1px); }
+.cat-btn.active { border-width: 2px; }
+.cat-btn.active[data-cat="video"]   { border-color: var(--cat-video);  background: #EFF6FF; }
+.cat-btn.active[data-cat="audio"]   { border-color: var(--cat-audio);  background: #ECFDF5; }
+.cat-btn.active[data-cat="visual"]  { border-color: var(--cat-visual); background: #FFFBEB; }
+.cat-btn.active[data-cat="text"]    { border-color: var(--cat-text);   background: #F5F3FF; }
+.cat-btn.active[data-cat="interact"]{ border-color: var(--cat-inter);  background: #FEF2F2; }
+.cat-btn.active[data-cat="info"]    { border-color: var(--cat-info);   background: #ECFEFF; }
+.cat-btn.active[data-cat="edu"]     { border-color: var(--cat-edu);    background: #FDF2F8; }
+.cat-btn.active[data-cat="aisys"]   { border-color: var(--cat-ai);     background: #F5F3FF; }
+.cat-btn.active[data-cat="civic"]   { border-color: var(--cat-civic);  background: #FFFBEB; }
+.cat-icon { font-size: 20px; line-height: 1; }
+.cat-name { font-size: 10px; font-weight: 600; color: var(--ink); line-height: 1.2; }
+
+/* ── SUB/ELEM SECTIONS ── */
+.sub-section, .elem-section { margin-bottom: 28px; display: none; }
+.sub-section.visible, .elem-section.visible { display: block; animation: slideIn .2s ease; }
+@keyframes slideIn { from { opacity:0; transform:translateY(6px); } to { opacity:1; transform:none; } }
+.sub-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 8px; margin-bottom: 8px; }
+.sub-btn { border: 1.5px solid var(--border); background: var(--surface); border-radius: 10px; padding: 10px 12px; cursor: pointer; transition: all .15s; display: flex; align-items: center; gap: 8px; text-align: left; }
+.sub-btn:hover { border-color: var(--border2); }
+.sub-btn.active { border-color: var(--ink); background: var(--ink); }
+.sub-btn.active .sub-btn-name { color: #fff; }
+.sub-btn.active .sub-btn-icon { filter: brightness(10); }
+.sub-btn-icon { font-size: 18px; flex-shrink: 0; }
+.sub-btn-name { font-size: 12px; font-weight: 600; color: var(--ink); line-height: 1.3; }
+.elem-desc { font-size: 12px; color: var(--ink2); margin-bottom: 14px; line-height: 1.65; padding: 10px 14px; background: var(--surface); border-radius: 8px; border-left: 3px solid var(--border2); }
+.elem-list-ui { display: flex; flex-direction: column; gap: 6px; }
+.elem-row { background: var(--surface); border: 1.5px solid var(--border); border-radius: 10px; overflow: hidden; transition: border-color .15s; }
+.elem-row:hover { border-color: var(--border2); }
+.elem-row-header { display: grid; grid-template-columns: 1fr 1px 174px; min-height: 48px; }
+.elem-row-info { display: flex; align-items: center; gap: 6px; padding: 8px; min-width: 0; }
+.elem-emoji { font-size: 16px; flex-shrink: 0; line-height: 1; }
+.elem-name-wrap { display: flex; flex-direction: column; gap: 3px; min-width: 0; flex: 1; }
+.elem-name { font-size: 12px; font-weight: 700; color: var(--ink); line-height: 1.25; word-break: keep-all; overflow-wrap: break-word; }
+.elem-core-tag { font-family: 'Space Mono', monospace; font-size: 7px; padding: 1px 5px; border-radius: 5px; background: #FEF3D0; color: #8B5E00; border: 1px solid #F0C84A; white-space: nowrap; align-self: flex-start; line-height: 1.4; }
+.elem-divider { background: var(--border); width: 1px; }
+.elem-options { display: grid; grid-template-columns: 1fr 1fr 1fr; height: 100%; }
+.elem-opt { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; padding: 6px 2px; cursor: pointer; transition: background .12s; background: var(--surface); border: none; outline: none; border-left: 1px solid var(--border); font-family: 'Barlow', sans-serif; height: 100%; }
+.elem-opt:hover { background: var(--surface2); }
+.elem-opt.sel-real    { background: var(--green-bg); }
+.elem-opt.sel-enhance { background: var(--yellow-bg); }
+.elem-opt.sel-ai      { background: var(--red-bg); }
+.elem-opt .opt-icon  { font-size: 16px; line-height: 1; }
+.elem-opt .opt-label { font-size: 9px; font-weight: 600; line-height: 1; text-align: center; white-space: nowrap; color: var(--ink3); }
+.elem-opt.sel-real    .opt-label { color: var(--green); }
+.elem-opt.sel-enhance .opt-label { color: var(--yellow); }
+.elem-opt.sel-ai      .opt-label { color: var(--red); }
+.elem-opt.disabled-opt { opacity: 0.22; cursor: not-allowed; pointer-events: none; }
+.elem-row.state-real    { border-color: var(--green-border); }
+.elem-row.state-enhance { border-color: var(--yellow-border); }
+.elem-row.state-ai      { border-color: var(--red-border); }
+/* aisys alternate labels */
+.aisys-mode .opt-label-std     { display: none; }
+.aisys-mode .opt-label-aisys   { display: block !important; }
+.opt-label-aisys { display: none; font-size: 9px; font-weight: 600; line-height: 1; text-align: center; white-space: nowrap; }
+.elem-opt.sel-real    .opt-label-aisys { color: var(--green); }
+.elem-opt.sel-enhance .opt-label-aisys { color: var(--yellow); }
+.elem-opt.sel-ai      .opt-label-aisys { color: var(--red); }
+
+/* ── STEP 4: TRUSTWORTHINESS SECTION ── */
+.trust-section { margin-top: 14px; background: var(--surface); border: 1.5px solid var(--border); border-radius: 10px; padding: 14px 16px; display: none; }
+.trust-section.visible { display: block; animation: slideIn .2s ease; }
+.trust-section-title { font-size: 12px; font-weight: 700; color: var(--ink2); margin-bottom: 8px; }
+.tw-group { }
+.tw-group-label { font-size: 12px; font-weight: 700; color: var(--ink); margin-bottom: 3px; }
+.tw-group-hint { font-size: 10px; color: var(--ink3); margin-bottom: 8px; font-style: italic; line-height: 1.4; }
+.tw-group + .tw-group { padding-top: 12px; border-top: 1px dashed var(--border); }
+
+/* Verification badges — teal/green tint */
+.verif-badge { border-color: var(--teal-border) !important; }
+.verif-badge:hover { border-color: var(--teal) !important; }
+.verif-badge.active { background: var(--teal) !important; border-color: var(--teal) !important; color: #fff !important; }
+
+/* Transparency badges — purple tint */
+.transp-badge { border-color: var(--purple-border) !important; }
+.transp-badge:hover { border-color: var(--purple) !important; }
+.transp-badge.active { background: var(--purple) !important; border-color: var(--purple) !important; color: #fff !important; }
+
+.trust-badges { display: flex; flex-wrap: wrap; gap: 6px; }
+.trust-badge { display: flex; align-items: center; gap: 5px; padding: 5px 10px; border-radius: 20px; border: 1.5px solid var(--blue-border); background: var(--surface); cursor: pointer; font-size: 11px; font-weight: 600; color: var(--ink2); transition: all .15s; user-select: none; }
+.trust-badge:hover { border-color: var(--blue); }
+.trust-badge.active { background: var(--blue); border-color: var(--blue); color: #fff; }
+.trust-badge .tb-icon { font-size: 13px; }
+.account-badge { border-color: var(--purple-border); }
+.account-badge:hover { border-color: var(--purple); }
+.account-badge.active { background: var(--purple); border-color: var(--purple); color: #fff; }
+.trust-note { font-size: 10px; color: var(--ink3); margin-top: 8px; line-height: 1.5; }
+
+/* ── RESULT ── */
+.result-section { display: none; margin-top: 8px; }
+.result-section.visible { display: block; animation: slideIn .3s ease; }
+.result-card { border-radius: 14px; padding: 20px 22px; border: 2px solid; display: flex; flex-direction: column; gap: 10px; }
+.result-card.r-green  { background: var(--green-bg);  border-color: var(--green-border); }
+.result-card.r-yellow { background: var(--yellow-bg); border-color: var(--yellow-border); }
+.result-card.r-red    { background: var(--red-bg);    border-color: var(--red-border); }
+.result-top { display: flex; align-items: flex-start; justify-content: space-between; flex-wrap: wrap; gap: 8px; }
+.result-label { font-size: 20px; font-weight: 900; letter-spacing: -0.02em; }
+.result-card.r-green  .result-label { color: var(--green); }
+.result-card.r-yellow .result-label { color: var(--yellow); }
+.result-card.r-red    .result-label { color: var(--red); }
+
+/* 3-axis mini display in result */
+.result-axes { display: flex; gap: 8px; flex-wrap: wrap; }
+.result-axis-pill {
+  display: flex; flex-direction: column; align-items: center;
+  padding: 6px 12px; border-radius: 10px; gap: 1px;
+  min-width: 72px;
+}
+.result-axis-pill.ai-pill   { background: rgba(139,26,26,0.09); border: 1px solid var(--red-border); }
+.result-axis-pill.tr-pill   { background: rgba(26,74,139,0.09); border: 1px solid var(--blue-border); }
+
+.result-card.r-green .result-axis-pill.ai-pill   { background: rgba(27,107,58,0.10); border-color: var(--green-border); }
+.result-card.r-yellow .result-axis-pill.ai-pill  { background: rgba(139,94,0,0.10); border-color: var(--yellow-border); }
+.rap-label { font-family: 'Space Mono', monospace; font-size: 7px; text-transform: uppercase; letter-spacing: 0.1em; opacity: .55; }
+.rap-val { font-family: 'Space Mono', monospace; font-size: 16px; font-weight: 700; line-height: 1; }
+.result-axis-pill.ai-pill   .rap-val { color: var(--red); }
+.result-card.r-green  .result-axis-pill.ai-pill .rap-val { color: var(--green); }
+.result-card.r-yellow .result-axis-pill.ai-pill .rap-val { color: var(--yellow); }
+.result-axis-pill.tr-pill   .rap-val { color: var(--blue); }
+
+.rap-sub { font-size: 9px; color: var(--ink3); }
+
+.result-score-badge { font-family: 'Space Mono', monospace; font-size: 11px; padding: 4px 12px; border-radius: 20px; }
+.result-card.r-green  .result-score-badge { background: rgba(27,107,58,0.12); color: var(--green); }
+.result-card.r-yellow .result-score-badge { background: rgba(139,94,0,0.12);  color: var(--yellow); }
+.result-card.r-red    .result-score-badge { background: rgba(139,26,26,0.12); color: var(--red); }
+.result-desc { font-size: 12px; color: var(--ink2); line-height: 1.65; }
+.result-breakdown { display: flex; flex-direction: column; gap: 4px; margin-top: 4px; }
+.rb-row { display: flex; align-items: center; justify-content: space-between; font-size: 11px; color: var(--ink2); padding: 5px 0; border-bottom: 1px dashed rgba(0,0,0,0.08); }
+.rb-row:last-child { border-bottom: none; }
+.rb-elem { display: flex; align-items: center; gap: 6px; }
+.rb-val { font-family: 'Space Mono', monospace; font-size: 10px; font-weight: 700; }
+.rb-val.rv-0    { color: var(--green); }
+.rb-val.rv-half { color: var(--yellow); }
+.rb-val.rv-full { color: var(--red); }
+.override-notice { display: flex; align-items: flex-start; gap: 8px; padding: 10px 12px; background: rgba(139,26,26,0.08); border-radius: 8px; border: 1px solid var(--red-border); font-size: 11px; color: var(--red); line-height: 1.55; }
+.trust-result-badges { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 4px; }
+.trust-result-badge { font-family: 'Space Mono', monospace; font-size: 9px; padding: 2px 8px; border-radius: 10px; background: rgba(26,74,139,0.1); color: var(--blue); border: 1px solid var(--blue-border); }
+.account-result-badge { background: rgba(91,33,182,0.1); color: var(--purple); border-color: var(--purple-border); }
+.copy-label-btn { display: inline-flex; align-items: center; gap: 6px; margin-top: 10px; font-family: 'Space Mono', monospace; font-size: 10px; letter-spacing: 0.08em; padding: 7px 14px; border-radius: 20px; border: 1.5px solid currentColor; background: transparent; cursor: pointer; transition: all .15s; opacity: .65; }
+.copy-label-btn:hover, .copy-label-btn.copied { opacity: 1; }
+.result-card.r-green  .copy-label-btn { color: var(--green); }
+.result-card.r-yellow .copy-label-btn { color: var(--yellow); }
+.result-card.r-red    .copy-label-btn { color: var(--red); }
+
+/* ── EXPORT PANEL ── */
+.export-panel { margin-top: 14px; padding-top: 14px; border-top: 1px dashed var(--border); }
+.export-title { font-family: 'Space Mono', monospace; font-size: 9px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--ink3); margin-bottom: 8px; }
+.export-btns { display: flex; gap: 8px; flex-wrap: wrap; }
+.export-btn {
+  display: flex; flex-direction: column; align-items: center; gap: 3px;
+  padding: 10px 16px; border-radius: 10px; border: 1.5px solid var(--border);
+  background: var(--surface); cursor: pointer; transition: all .15s;
+  font-family: 'Barlow', sans-serif; min-width: 90px; flex: 1;
+}
+.export-btn:hover { border-color: var(--border2); transform: translateY(-1px); box-shadow: 0 2px 8px rgba(0,0,0,0.07); }
+.export-btn:active { transform: translateY(0); }
+.eb-icon  { font-size: 20px; line-height: 1; }
+.eb-label { font-size: 12px; font-weight: 700; color: var(--ink); }
+.eb-hint  { font-size: 9px; color: var(--ink3); text-align: center; line-height: 1.3; }
+.eb-emoji  { border-color: var(--green-border); }
+.eb-emoji:hover  { border-color: var(--green); background: var(--green-bg); }
+.eb-html   { border-color: var(--blue-border); }
+.eb-html:hover   { border-color: var(--blue); background: var(--blue-bg); }
+.eb-image  { border-color: var(--purple-border); }
+.eb-image:hover  { border-color: var(--purple); background: var(--purple-bg); }
+.export-feedback { font-size: 11px; color: var(--green); font-weight: 600; margin-top: 7px; min-height: 16px; transition: opacity .3s; }
+
+/* ── COPY LABEL BTN (legacy - kept for compat) ── */
+.copy-label-btn { display: none; }
+.truth-note-box {
+  margin-top: 8px;
+  padding: 9px 13px;
+  background: rgba(180,83,9,0.07);
+  border: 1px solid rgba(180,83,9,0.22);
+  border-radius: 8px;
+  font-size: 11px; color: #7c3a00; line-height: 1.6;
+}
+
+/* ── TRUSTWORTHINESS DETAIL in result ── */
+.tw-detail-grid { display: flex; flex-direction: column; gap: 3px; }
+.tw-detail-row { display: flex; justify-content: space-between; font-size: 10px; color: var(--ink3); }
+.tw-detail-val { font-weight: 700; color: var(--ink2); }
+
+/* ── INDEPENDENT VERIFICATION RADIO ── */
+.indep-verif-wrap { margin-bottom: 10px; }
+.indep-verif-label { font-size: 11px; font-weight: 700; color: var(--ink2); margin-bottom: 6px; }
+.indep-verif-options { display: flex; gap: 6px; flex-wrap: wrap; }
+.iv-btn {
+  padding: 8px 12px; border-radius: 10px; border: 1.5px solid var(--border);
+  background: var(--surface); font-family: 'Barlow', sans-serif;
+  cursor: pointer; transition: all .15s;
+  display: flex; flex-direction: column; align-items: flex-start; gap: 2px;
+  text-align: left; flex: 1; min-width: 100px;
+}
+.iv-btn:hover { border-color: var(--border2); }
+.iv-btn.active { font-weight: 700; }
+.iv-btn[data-level="none"].active   { background: var(--red-bg);    border-color: var(--red-border);    color: var(--red); }
+.iv-btn[data-level="human"].active  { background: var(--yellow-bg);  border-color: var(--yellow-border); color: var(--yellow); }
+.iv-btn[data-level="expert"].active { background: var(--blue-bg);    border-color: var(--blue-border);   color: var(--blue); }
+.iv-btn[data-level="third"].active  { background: var(--green-bg);   border-color: var(--green-border);  color: var(--green); }
+.iv-main { font-size: 11px; font-weight: 700; color: var(--ink); }
+.iv-sub  { font-size: 9px; font-weight: 400; color: var(--ink3); line-height: 1.35; }
+.verif-level-wrap {
+  display: flex; align-items: center; gap: 8px;
+  padding: 8px 12px; border-radius: 8px; margin-top: 2px;
+  border: 1px solid var(--blue-border); background: var(--blue-bg);
+}
+.verif-level-icon { font-size: 16px; }
+.verif-level-text { display: flex; flex-direction: column; gap: 1px; }
+.verif-level-label { font-family: 'Space Mono', monospace; font-size: 8px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--ink3); }
+.verif-level-name { font-size: 13px; font-weight: 700; color: var(--blue); }
+.verif-level-desc { font-size: 10px; color: var(--ink3); line-height: 1.4; margin-top: 1px; }
+.verif-level-wrap.vl-none     { background: var(--red-bg); border-color: var(--red-border); }
+.verif-level-wrap.vl-none     .verif-level-name { color: var(--red); }
+.verif-level-wrap.vl-human    { background: var(--yellow-bg); border-color: var(--yellow-border); }
+.verif-level-wrap.vl-human    .verif-level-name { color: var(--yellow); }
+.verif-level-wrap.vl-expert   { background: var(--blue-bg); border-color: var(--blue-border); }
+.verif-level-wrap.vl-expert   .verif-level-name { color: var(--blue); }
+.verif-level-wrap.vl-indep    { background: var(--green-bg); border-color: var(--green-border); }
+.verif-level-wrap.vl-indep    .verif-level-name { color: var(--green); }
+
+/* ── AI Involvement label colors override (neutral framing) ── */
+/* Keep panel color for context but soften "danger" language */
+.score-axis-title { font-family: 'Space Mono', monospace; font-size: 8px; letter-spacing: 0.12em; text-transform: uppercase; color: rgba(255,255,255,0.38); }
+
+.foot { margin-top: 40px; padding-top: 16px; border-top: 1px solid var(--border); display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 8px; }
+.foot-mono { font-family: 'Space Mono', monospace; font-size: 9px; color: var(--ink3); letter-spacing: 0.1em; }
+.foot-legend { display: flex; flex-direction: column; gap: 3px; align-items: flex-end; }
+
+@media (max-width: 640px) {
+  .cat-grid { grid-template-columns: repeat(3, 1fr); }
+  .score-panel { padding: 8px 10px; gap: 8px; }
+  .score-reset-col { display: none; }
+  .shell { padding: 12px 10px 48px; }
+  .hd { padding-bottom: 14px; margin-bottom: 18px; }
+  .hd h1 { font-size: 24px; }
+  .hd-sub { font-size: 11px; }
+  .elem-row-header { grid-template-columns: 1fr 1px 162px; }
+  .score-main-num { font-size: 20px; }
+  .score-trust-val { font-size: 14px; }
+  .score-main-name { font-size: 10px; }
+}
+@media (max-width: 420px) {
+  .cat-grid { grid-template-columns: repeat(3, 1fr); }
+  .score-panel { grid-template-columns: 1fr 1px 1fr; }
+  .score-panel .score-divider:last-of-type,
+  .score-panel .score-axis:last-of-type { display: none; }
+  .elem-row-header { grid-template-columns: 1fr 1px 150px; }
+  .elem-opt .opt-label { font-size: 8px; }
+  .score-main-num { font-size: 18px; }
+  .score-trust-val { font-size: 13px; }
+  .reset-btn { font-size: 8px; padding: 4px 8px; }
+}
+@media (max-width: 340px) {
+  .elem-row-header { grid-template-columns: 1fr 1px 138px; }
+  .elem-opt .opt-label { display: none; }
+}
+</style>
+</head>
+<body>
+<div class="shell">
+  <div class="hd">
+    <h1>AI Nutrition<br>Label Calculator</h1>
+    <div class="version-badge">v5.2 · 9 CATEGORIES · 44 TYPES</div>
+    <p class="hd-sub">Select a content category and type, mark each element, and your AI transparency label is generated automatically.</p>
+  </div>
+
+  <!-- SCORE PANEL: 2-axis -->
+  <div class="score-panel" id="scorePanel">
+    <div class="score-axis-wrap">
+      <div class="score-main">
+        <div class="score-main-label">AI Involvement</div>
+        <div class="score-main-val">
+          <span class="score-main-num" id="aiScoreVal">—</span>
+          <span class="score-main-name" id="aiScoreLabel"></span>
+        </div>
+        <div class="score-bar-track"><div class="score-bar-fill" id="aiBarFill"></div></div>
+      </div>
+      <div class="score-divider-v"></div>
+      <div class="score-trust-axis">
+        <div class="score-main-label">Trustworthiness</div>
+        <div class="score-main-val" style="gap:6px">
+          <span class="score-trust-val" id="trustworthyVal">—</span>
+        </div>
+        <div class="score-bar-track"><div class="score-bar-fill trust-fill" id="trustBarFill"></div></div>
+      </div>
+    </div>
+    <button class="reset-btn" onclick="resetAll()">↺ Reset</button>
+  </div>
+
+  <div class="step-label"><span class="sn">1</span> Choose Content Category</div>
+  <div class="cat-grid">
+    <button class="cat-btn" data-cat="video"    onclick="selectCat('video',this)">   <span class="cat-icon">🎬</span><span class="cat-name">Video</span></button>
+    <button class="cat-btn" data-cat="audio"    onclick="selectCat('audio',this)">   <span class="cat-icon">🎵</span><span class="cat-name">Audio / Music</span></button>
+    <button class="cat-btn" data-cat="visual"   onclick="selectCat('visual',this)">  <span class="cat-icon">🖼</span><span class="cat-name">Visual Art</span></button>
+    <button class="cat-btn" data-cat="text"     onclick="selectCat('text',this)">    <span class="cat-icon">📖</span><span class="cat-name">Text</span></button>
+    <button class="cat-btn" data-cat="interact" onclick="selectCat('interact',this)"><span class="cat-icon">🎮</span><span class="cat-name">Interactive</span></button>
+    <button class="cat-btn" data-cat="info"     onclick="selectCat('info',this)">    <span class="cat-icon">📡</span><span class="cat-name">News & Info</span></button>
+    <button class="cat-btn" data-cat="edu"      onclick="selectCat('edu',this)">     <span class="cat-icon">🎓</span><span class="cat-name">Education</span></button>
+    <button class="cat-btn" data-cat="aisys"    onclick="selectCat('aisys',this)">   <span class="cat-icon">🤖</span><span class="cat-name">AI System</span></button>
+    <button class="cat-btn" data-cat="civic"    onclick="selectCat('civic',this)">   <span class="cat-icon">🏛</span><span class="cat-name">Civic / Public</span></button>
+  </div>
+
+  <div class="sub-section" id="subSection">
+    <div class="step-label"><span class="sn">2</span> Select Content Type</div>
+    <div class="sub-grid" id="subGrid"></div>
+  </div>
+
+  <div class="elem-section" id="elemSection">
+    <div class="step-label"><span class="sn">3</span> Mark Each Element</div>
+    <div class="elem-desc" id="elemDesc"></div>
+    <div class="elem-list-ui" id="elemListUI"></div>
+
+    <!-- STEP 4: TRUSTWORTHINESS (Verification + Transparency) -->
+    <div class="trust-section" id="trustSection">
+      <div class="step-label" style="margin-bottom:14px"><span class="sn">4</span> How trustworthy is this content?</div>
+
+      <!-- GROUP A: Verification — was it checked? -->
+      <div class="tw-group">
+        <div class="tw-group-label">🔍 Verification — Who checked this?</div>
+        <div class="tw-group-hint">Select the highest level of oversight applied to this content.</div>
+        <div class="indep-verif-options" style="margin-bottom:10px">
+          <button class="iv-btn" data-level="none"   onclick="setIndepVerif('none',this)">
+            <span class="iv-main">⚠️ Not verified</span>
+            <span class="iv-sub">No review applied — lowest trust</span>
+          </button>
+          <button class="iv-btn" data-level="human"  onclick="setIndepVerif('human',this)">
+            <span class="iv-main">Human reviewed</span>
+            <span class="iv-sub">Creator or editor checked it</span>
+          </button>
+          <button class="iv-btn" data-level="expert" onclick="setIndepVerif('expert',this)">
+            <span class="iv-main">Expert reviewed</span>
+            <span class="iv-sub">Domain expert, same organization</span>
+          </button>
+          <button class="iv-btn" data-level="third"  onclick="setIndepVerif('third',this)">
+            <span class="iv-main">Independently verified</span>
+            <span class="iv-sub">Third party outside creator's org</span>
+          </button>
+        </div>
+        <div class="tw-group-hint" style="margin-bottom:6px">Additional verification badges (select all that apply):</div>
+        <div class="trust-badges" id="verifBadges"></div>
+      </div>
+
+      <!-- GROUP B: Transparency — what was disclosed? -->
+      <div class="tw-group" style="margin-top:12px">
+        <div class="tw-group-label">📢 Transparency — What has been disclosed?</div>
+        <div class="tw-group-hint">Check every item the creator or publisher has made openly available.</div>
+        <div class="trust-badges" id="transpBadges"></div>
+      </div>
+
+      <div class="trust-note" id="twScoreHint" style="margin-top:10px">
+        Select items above to build the Trustworthiness score. Max score requires: <em>Independently verified</em> + both verification badges + all transparency items.
+      </div>
+    </div>
+  </div>
+
+  <div class="result-section" id="resultSection">
+    <div class="result-card" id="resultCard">
+      <div class="result-top">
+        <div>
+          <div class="result-label" id="resultLabel"></div>
+          <div class="result-score-badge" id="resultBadge" style="margin-top:4px"></div>
+        </div>
+        <div class="result-axes" id="resultAxes"></div>
+      </div>
+      <div class="result-desc" id="resultDesc"></div>
+      <div id="verifLevelArea"></div>
+      <div class="truth-note-box" id="truthNoteBox" style="display:none">
+        ⚠️ <strong>Note:</strong> This score measures <em>AI usage level</em>, not factual accuracy or truthfulness.
+        A Human-led label does not certify content as factually correct. Use Trust and Accountability scores for a fuller picture.
+      </div>
+      <div id="overrideNotice"></div>
+      <div id="trustResultArea"></div>
+      <div class="result-breakdown" id="resultBreakdown"></div>
+
+      <!-- EXPORT PANEL -->
+      <div class="export-panel" id="exportPanel" style="display:none">
+        <div class="export-title">Share this label</div>
+        <div class="export-btns">
+          <button class="export-btn eb-emoji"  onclick="exportEmoji()">
+            <span class="eb-icon">✏️</span>
+            <span class="eb-label">Copy Text</span>
+            <span class="eb-hint">Blog · SNS · Email</span>
+          </button>
+          <button class="export-btn eb-html"   onclick="exportHTML()">
+            <span class="eb-icon">🌐</span>
+            <span class="eb-label">Copy HTML</span>
+            <span class="eb-hint">Website embed</span>
+          </button>
+          <button class="export-btn eb-image"  onclick="exportImage()">
+            <span class="eb-icon">🖼</span>
+            <span class="eb-label">Save Image</span>
+            <span class="eb-hint">PNG download</span>
+          </button>
+        </div>
+        <div class="export-feedback" id="exportFeedback"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="foot">
+    <span class="foot-mono">AI NUTRITION LABEL CALCULATOR</span>
+    <div class="foot-legend">
+      <span class="foot-mono">🟢 Human-led</span>
+      <span class="foot-mono">🟡 AI-Assisted</span>
+      <span class="foot-mono">🔴 AI-Generated</span>
+    </div>
+  </div>
+</div>
+<script>
+/* ════════════════════════════════════════
+   DATA — TAXONOMY v5.1
+
+   ARCHITECTURE: 3-Axis Transparency Framework
+   ┌──────────────────┬────────────────────────────────────────────────┐
+   │ AI Involvement   │ 0–100  How much AI was involved in the content  │
+   │                  │ Low (0–30) / Moderate (31–65) / High (66–100)  │
+   │                  │ NOT a measure of quality or trustworthiness     │
+   │ Verification     │ 0–8    Verifiable process safeguards present    │
+   │                  │ Determines Verification Level shown in result   │
+   │ Transparency     │ 0–6    What the creator/publisher has disclosed │
+   │                  │ Ordered: AI use→Creator→Provenance→Source→      │
+   │                  │         Contact→Correction                      │
+   └──────────────────┴────────────────────────────────────────────────┘
+
+   Changes in v5.1 (this version):
+   - Transparency items reordered for logical flow:
+       1. AI Use Disclosed  2. Creator/Publisher Identified
+       3. Provenance Available  4. Source/Evidence Provided (NEW)
+       5. Contact/Appeal Available  6. Correction Available
+   - Source/Evidence Provided added as 6th Transparency item (max /6)
+   - Combined Trustworthiness denominator updated: 8+6=14 (was 13)
+   - accountLabel thresholds updated for /6 scale
+   - Result display: verifBadgeScore/3 bug fixed → /2
+   - Result display: transpScore/5 updated → /6
+   - Version badge added to header (v5.1 · 9 CATEGORIES · 44 TYPES)
+   - validateWeights tag updated to v5.1
+
+   Changes from v5.0 (previous):
+   - "AI Content Score" renamed → "AI Involvement" (neutral framing)
+   - "Trust Score" renamed → "Verification" (process, not result)
+   - Verification Level auto-calculated in result card
+   - Accountability labels updated to creator/SNS-friendly language
+   - Truthfulness note updated to neutral framing
+════════════════════════════════════════ */
+
+const TAXONOMY = {
+  video: {
+    label: 'Video Content',
+    types: [
+      {
+        id:'film', icon:'🎥', name:'Film',
+        note:'Actor/Performer, Screenplay/Script, and Video Footage are identity-level core — AI-Enhanced not allowed. Voice/Dialogue AI-Enhanced is permissible. Songs+Voice both AI-Enhanced → AI-Generated.',
+        elements:[
+          {emoji:'👤', name:'Actor / Performer',  weight:30, core:true,  noEnhance:true},
+          {emoji:'📖', name:'Screenplay / Script', weight:28, core:true,  noEnhance:true},
+          {emoji:'🎤', name:'Voice / Dialogue',    weight:22, core:true,  noEnhance:false},
+          {emoji:'🎬', name:'Video Footage',       weight:12, core:true,  noEnhance:true},
+          {emoji:'🎨', name:'VFX / Color Grade',  weight:5,  core:false, noEnhance:false},
+          {emoji:'🎵', name:'Songs',               weight:3,  core:false, noEnhance:false},
+        ],
+        ruleCheck: function(s) {
+          if (s[0]==='ai'||s[1]==='ai'||s[3]==='ai') return 'ai';
+          if ((s[5]==='enhance'||s[5]==='ai')&&(s[2]==='enhance'||s[2]==='ai')) return 'ai';
+          return null;
+        }
+      },
+      {
+        id:'mv', icon:'🎤', name:'Music Video',
+        note:'Artist/Singer, Voice/Vocal, Lyrics are identity core — AI-Enhanced not allowed. Video Footage AI-Enhanced permitted (color grading). Any core AI-Generated → AI-Generated.',
+        elements:[
+          {emoji:'👤', name:'Artist / Singer', weight:32, core:true,  noEnhance:true},
+          {emoji:'🎤', name:'Voice / Vocal',   weight:28, core:true,  noEnhance:true},
+          {emoji:'📖', name:'Lyrics',          weight:22, core:true,  noEnhance:true},
+          {emoji:'🎬', name:'Video Footage',   weight:12, core:true,  noEnhance:false},
+          {emoji:'🎨', name:'Visual Effects',  weight:6,  core:false, noEnhance:false},
+        ],
+        ruleCheck: function(s) {
+          if (s[0]==='ai'||s[1]==='ai'||s[2]==='ai') return 'ai';
+          if (s[3]==='ai') return 'ai';
+          if (s[3]==='enhance') return 'enhance';
+          return null;
+        }
+      },
+      {
+        id:'drama', icon:'📺', name:'Drama / Series',
+        note:'Actor/Cast & Script are core. Either AI-Generated → AI-Generated. Voice/Dialogue or Video Footage AI-Enhanced → overall AI-Enhanced. Both AI-Enhanced → AI-Generated.',
+        elements:[
+          {emoji:'👤', name:'Actor / Cast',     weight:30, core:true,  noEnhance:false},
+          {emoji:'📖', name:'Script',           weight:28, core:true,  noEnhance:false},
+          {emoji:'🎤', name:'Voice / Dialogue', weight:22, core:false, noEnhance:false},
+          {emoji:'🎬', name:'Video Footage',    weight:14, core:false, noEnhance:false},
+          {emoji:'🎨', name:'VFX / Editing',   weight:6,  core:false, noEnhance:false},
+        ],
+        ruleCheck: function(s) {
+          if (s[0]==='ai'||s[1]==='ai') return 'ai';
+          const v=s[2]==='enhance'||s[2]==='ai', f=s[3]==='enhance'||s[3]==='ai';
+          if (v&&f) return 'ai';
+          if (v||f) return 'enhance';
+          return null;
+        }
+      },
+      {
+        id:'doc', icon:'🎞', name:'Documentary',
+        note:'Subject/Interviews, Factual Content & Footage cannot be AI-Enhanced. Archival Source (original evidence) cannot be AI-Enhanced; Archival Restoration (noise/color) is OK. Narration AI-Enhanced allowed.',
+        elements:[
+          {emoji:'👤', name:'Subject / Interviews',       weight:28, core:true,  noEnhance:true},
+          {emoji:'📖', name:'Factual Content / Claim',    weight:24, core:true,  noEnhance:true},
+          {emoji:'🎬', name:'Footage',                    weight:20, core:true,  noEnhance:true},
+          {emoji:'📂', name:'Archival Source / Evidence', weight:14, core:true,  noEnhance:true},
+          {emoji:'🖌', name:'Archival Restoration',       weight:7,  core:false, noEnhance:false},
+          {emoji:'🎤', name:'Narration / Voice-over',     weight:7,  core:false, noEnhance:false},
+        ],
+        ruleCheck: function(s) {
+          if ([0,1,2,3].some(i=>s[i]==='ai')) return 'ai';
+          if (s[5]==='enhance'||s[5]==='ai') return 'enhance';
+          return null;
+        }
+      },
+      {
+        id:'short_ent', icon:'📱', name:'Entertainment Shorts',
+        note:'Creator identity and Video Footage are core. AI-Generated in either → AI-Generated. 2+ elements AI-Enhanced → AI-Generated.',
+        elements:[
+          {emoji:'👤', name:'Presenter / Creator', weight:38, core:true,  noEnhance:false},
+          {emoji:'🎤', name:'Voice',               weight:28, core:false, noEnhance:false},
+          {emoji:'🎬', name:'Video Footage',       weight:24, core:true,  noEnhance:false},
+          {emoji:'🎨', name:'Visual Effects',      weight:10, core:false, noEnhance:false},
+        ],
+        ruleCheck: function(s) {
+          if (s[0]==='ai'||s[2]==='ai') return 'ai';
+          if ([0,1,2,3].filter(i=>s[i]==='enhance'||s[i]==='ai').length>=2) return 'ai';
+          return null;
+        }
+      },
+      {
+        id:'short_info', icon:'📲', name:'Informational Shorts',
+        note:'Factual Claim and Source/Evidence are high-weight elements. Either AI-Generated → AI-Generated. Presenter AI-Generated → AI-Generated.',
+        elements:[
+          {emoji:'👤', name:'Presenter / Creator', weight:25, core:true,  noEnhance:false},
+          {emoji:'📖', name:'Factual Claim',       weight:30, core:true,  noEnhance:true},
+          {emoji:'📍', name:'Source / Evidence',   weight:25, core:true,  noEnhance:true},
+          {emoji:'🎤', name:'Voice',               weight:10, core:false, noEnhance:false},
+          {emoji:'🎬', name:'Visuals / Footage',   weight:10, core:false, noEnhance:false},
+        ],
+        ruleCheck: function(s) {
+          if (s[0]==='ai'||s[1]==='ai'||s[2]==='ai') return 'ai';
+          return null;
+        }
+      },
+      {
+        id:'anim', icon:'🎠', name:'Animation',
+        note:'Script/Story & Motion are core. Voice Acting AI-Enhanced allowed. Script or Motion AI-Generated → AI-Generated.',
+        elements:[
+          {emoji:'🎤', name:'Voice Acting',          weight:26, core:true,  noEnhance:false},
+          {emoji:'📖', name:'Script / Story',        weight:28, core:true,  noEnhance:false},
+          {emoji:'🎬', name:'Motion / Animation',    weight:24, core:true,  noEnhance:false},
+          {emoji:'🎨', name:'Art Style / Direction', weight:14, core:false, noEnhance:false},
+          {emoji:'🎵', name:'BGM / Sound',           weight:8,  core:false, noEnhance:false},
+        ],
+        ruleCheck: function(s) {
+          if (s[1]==='ai'||s[2]==='ai') return 'ai';
+          return null;
+        }
+      },
+    ]
+  },
+  audio: {
+    label: 'Audio / Music Content',
+    types: [
+      {
+        id:'song', icon:'🎤', name:'Song / Single',
+        note:'Artist Identity and Voice are core — AI-Enhanced not allowed. Lyrics AI-Enhanced not allowed. Composition/Melody and Production AI-Enhanced permitted.',
+        elements:[
+          {emoji:'👤', name:'Artist Identity',      weight:30, core:true,  noEnhance:true},
+          {emoji:'🎤', name:'Voice / Vocal',        weight:30, core:true,  noEnhance:true},
+          {emoji:'📖', name:'Lyrics',               weight:25, core:true,  noEnhance:true},
+          {emoji:'🎼', name:'Composition / Melody', weight:10, core:false, noEnhance:false},
+          {emoji:'🎚', name:'Production / Mixing',  weight:5,  core:false, noEnhance:false},
+        ],
+        ruleCheck: function(s) {
+          if ([0,1,2].some(i=>s[i]==='ai')) return 'ai';
+          return null;
+        }
+      },
+      {
+        id:'album', icon:'💿', name:'Album / EP',
+        note:'Artist Identity, Voice, Lyrics, and Composition are core — AI-Enhanced not allowed. Production AI-Enhanced permitted.',
+        elements:[
+          {emoji:'👤', name:'Artist Identity',     weight:28, core:true,  noEnhance:true},
+          {emoji:'🎤', name:'Voice / Vocal',       weight:26, core:true,  noEnhance:true},
+          {emoji:'📖', name:'Lyrics',              weight:22, core:true,  noEnhance:true},
+          {emoji:'🎼', name:'Composition',         weight:16, core:true,  noEnhance:true},
+          {emoji:'🎚', name:'Production / Mixing', weight:8,  core:false, noEnhance:false},
+        ],
+        ruleCheck: function(s) {
+          if ([0,1,2,3].some(i=>s[i]==='ai')) return 'ai';
+          return null;
+        }
+      },
+      {
+        id:'podcast', icon:'🎙', name:'Podcast',
+        note:'Host/Creator and Voice are core — AI-Enhanced not allowed. Script AI-Enhanced not allowed. Editing/Cleanup and AI Summary AI-Enhanced permitted.',
+        elements:[
+          {emoji:'👤', name:'Host / Creator',   weight:30, core:true,  noEnhance:true},
+          {emoji:'🎤', name:'Voice',            weight:28, core:true,  noEnhance:true},
+          {emoji:'📖', name:'Script / Content', weight:25, core:true,  noEnhance:true},
+          {emoji:'✂️', name:'Editing / Cleanup',weight:10, core:false, noEnhance:false},
+          {emoji:'📝', name:'AI Summary/Notes', weight:7,  core:false, noEnhance:false},
+        ],
+        ruleCheck: function(s) {
+          if ([0,1,2].some(i=>s[i]==='ai')) return 'ai';
+          return null;
+        }
+      },
+      {
+        id:'audiobook', icon:'🔊', name:'Audiobook',
+        note:'Source Text & Author Attribution are core. Core AI-Generated or AI-Enhanced → AI-Generated. Narration/Voice AI-Enhanced → AI-Assisted; AI-Generated → AI-Generated.',
+        elements:[
+          {emoji:'📖', name:'Source Text',        weight:40, core:true,  noEnhance:true},
+          {emoji:'👤', name:'Author Attribution', weight:32, core:true,  noEnhance:true},
+          {emoji:'🎤', name:'Narration / Voice',  weight:20, core:false, noEnhance:false},
+          {emoji:'✂️', name:'Audio Editing',      weight:8,  core:false, noEnhance:false},
+        ],
+        ruleCheck: function(s) {
+          if (s[0]==='ai'||s[1]==='ai'||s[0]==='enhance'||s[1]==='enhance') return 'ai';
+          if (s[2]==='ai') return 'ai';
+          if (s[2]==='enhance') return 'enhance';
+          return null;
+        }
+      },
+      {
+        id:'bgm', icon:'🎼', name:'BGM / Sound FX',
+        note:'Composition and Performance are core. Both AI-Generated → AI-Generated. Production AI-Enhanced permitted.',
+        elements:[
+          {emoji:'🎼', name:'Composition / Music', weight:50, core:true,  noEnhance:false},
+          {emoji:'🎹', name:'Performance',          weight:25, core:true,  noEnhance:false},
+          {emoji:'🎚', name:'Production',           weight:25, core:false, noEnhance:false},
+        ],
+        ruleCheck: function(s) {
+          if (s[0]==='ai'||s[1]==='ai') return 'ai';
+          return null;
+        }
+      },
+    ]
+  },
+  visual: {
+    label: 'Visual Art / Image Content',
+    types: [
+      {
+        id:'photo', icon:'📷', name:'Photography',
+        note:'Person/Subject & Subject Object cannot be AI-Enhanced or AI-Generated. Background AI-Enhanced allowed (sky replacement). Editing AI-Enhanced allowed.',
+        elements:[
+          {emoji:'👤', name:'Person / Subject',      weight:40, core:true,  noEnhance:true},
+          {emoji:'🧸', name:'Subject Object',        weight:28, core:true,  noEnhance:true},
+          {emoji:'🖼', name:'Background',            weight:14, core:false, noEnhance:false},
+          {emoji:'✏️', name:'Editing / Retouching', weight:12, core:false, noEnhance:false},
+          {emoji:'🐾', name:'Animals / Other',       weight:6,  core:false, noEnhance:false},
+        ],
+        ruleCheck: function(s) {
+          if (s[0]==='ai'||s[1]==='ai') return 'ai';
+          return null;
+        }
+      },
+      {
+        id:'image', icon:'🖼', name:'Composite Image',
+        note:'Person/Figure or Primary Object AI-Generated → AI-Generated. Secondary objects and background allow AI-Enhanced.',
+        elements:[
+          {emoji:'👤', name:'Person / Figure',    weight:38, core:true,  noEnhance:true},
+          {emoji:'🧸', name:'Primary Object',     weight:30, core:true,  noEnhance:true},
+          {emoji:'🧸', name:'Secondary Object',   weight:18, core:false, noEnhance:false},
+          {emoji:'🖼', name:'Background / Scene', weight:10, core:false, noEnhance:false},
+          {emoji:'✏️', name:'Editing / Effects',  weight:4,  core:false, noEnhance:false},
+        ],
+        ruleCheck: function(s) {
+          if (s[0]==='ai'||s[1]==='ai') return 'ai';
+          return null;
+        }
+      },
+      {
+        id:'illus', icon:'🎨', name:'Illustration / Painting',
+        note:'Art Style, Figure/Character, and Objects are all core. Any AI-Generated → AI-Generated. AI-Enhanced not allowed for core elements.',
+        elements:[
+          {emoji:'🎨', name:'Art Style & Composition', weight:38, core:true, noEnhance:true},
+          {emoji:'👤', name:'Figure / Character',      weight:32, core:true, noEnhance:true},
+          {emoji:'🧸', name:'Objects',                 weight:30, core:true, noEnhance:true},
+        ],
+        ruleCheck: function(s) {
+          if ([0,1,2].some(i=>s[i]==='ai')) return 'ai';
+          return null;
+        }
+      },
+      {
+        id:'webtoon', icon:'💬', name:'Webtoon / Comics',
+        note:'Art Style, Story/Script, and Characters are all core. Any AI-Generated → AI-Generated.',
+        elements:[
+          {emoji:'🎨', name:'Art Style',      weight:35, core:true, noEnhance:true},
+          {emoji:'📖', name:'Story / Script', weight:35, core:true, noEnhance:true},
+          {emoji:'👤', name:'Characters',     weight:30, core:true, noEnhance:true},
+        ],
+        ruleCheck: function(s) {
+          if ([0,1,2].some(i=>s[i]==='ai')) return 'ai';
+          return null;
+        }
+      },
+      {
+        id:'infographic', icon:'📊', name:'Infographic',
+        note:'Data/Content and Source Citation are core and cannot be AI-Enhanced. Visual Design AI-Enhanced permitted.',
+        elements:[
+          {emoji:'📖', name:'Data & Content',  weight:55, core:true,  noEnhance:true},
+          {emoji:'📍', name:'Source Citation', weight:30, core:true,  noEnhance:true},
+          {emoji:'🎨', name:'Visual Design',   weight:15, core:false, noEnhance:false},
+        ],
+        ruleCheck: function(s) {
+          if (s[0]==='ai'||s[1]==='ai') return 'ai';
+          return null;
+        }
+      },
+    ]
+  },
+  text: {
+    label: 'Text Content',
+    types: [
+      {
+        id:'novel', icon:'📚', name:'Novel / Book',
+        note:'Ideas/Narrative and Author Attribution are core — AI-Enhanced not allowed. Writing Style and Structure AI-Enhanced allowed. Any core AI-Generated → AI-Generated.',
+        elements:[
+          {emoji:'💡', name:'Ideas / Narrative',  weight:45, core:true,  noEnhance:true},
+          {emoji:'👤', name:'Author Attribution', weight:20, core:true,  noEnhance:true},
+          {emoji:'✍️', name:'Writing Style',      weight:20, core:false, noEnhance:false},
+          {emoji:'📐', name:'Structure / Format', weight:15, core:false, noEnhance:false},
+        ],
+        ruleCheck: function(s) {
+          if (s[0]==='ai'||s[1]==='ai') return 'ai';
+          return null;
+        }
+      },
+      {
+        id:'poetry', icon:'✍️', name:'Poetry / Essay',
+        note:'Content/Ideas and Author Attribution are core. Style & Voice AI-Enhanced permitted. Any core AI-Generated → AI-Generated.',
+        elements:[
+          {emoji:'💡', name:'Content / Ideas',    weight:45, core:true,  noEnhance:true},
+          {emoji:'👤', name:'Author Attribution', weight:20, core:true,  noEnhance:true},
+          {emoji:'✍️', name:'Style & Voice',      weight:25, core:false, noEnhance:false},
+          {emoji:'📐', name:'Final Expression',   weight:10, core:false, noEnhance:false},
+        ],
+        ruleCheck: function(s) {
+          if (s[0]==='ai'||s[1]==='ai') return 'ai';
+          return null;
+        }
+      },
+      {
+        id:'script', icon:'📜', name:'Screenplay / Script',
+        note:'Narrative Structure and Writer are core. Dialogue and Scene Description AI-Enhanced allowed. Any core AI-Generated → AI-Generated.',
+        elements:[
+          {emoji:'📖', name:'Narrative Structure', weight:40, core:true,  noEnhance:true},
+          {emoji:'👤', name:'Writer',              weight:20, core:true,  noEnhance:true},
+          {emoji:'💬', name:'Dialogue',            weight:28, core:false, noEnhance:false},
+          {emoji:'🎬', name:'Scene Description',   weight:12, core:false, noEnhance:false},
+        ],
+        ruleCheck: function(s) {
+          if (s[0]==='ai'||s[1]==='ai') return 'ai';
+          return null;
+        }
+      },
+      {
+        id:'copy', icon:'📢', name:'Marketing Copy',
+        note:'Core Message cannot be AI-Enhanced or AI-Generated. Tone & Voice AI-Enhanced permitted. Visual Elements AI-Enhanced → AI-Enhanced. Both Visual+Tone AI-Enhanced → AI-Generated.',
+        elements:[
+          {emoji:'📖', name:'Core Message',    weight:50, core:true,  noEnhance:true},
+          {emoji:'🎨', name:'Visual Elements', weight:22, core:false, noEnhance:false},
+          {emoji:'✍️', name:'Tone & Voice',    weight:18, core:false, noEnhance:false},
+          {emoji:'📐', name:'Structure / CTA', weight:10, core:false, noEnhance:false},
+        ],
+        ruleCheck: function(s) {
+          if (s[0]==='ai') return 'ai';
+          if ((s[1]==='enhance'||s[1]==='ai')&&(s[2]==='enhance'||s[2]==='ai')) return 'ai';
+          if (s[1]==='enhance'||s[1]==='ai') return 'enhance';
+          return null;
+        }
+      },
+      {
+        id:'translate', icon:'🌐', name:'Translation',
+        note:'Source Text & Author Attribution are core. Translation AI-Enhanced permitted. AI-Generated translation with human review → AI-Assisted.',
+        elements:[
+          {emoji:'📖', name:'Source Text',         weight:40, core:true,  noEnhance:true},
+          {emoji:'👤', name:'Author Attribution',  weight:25, core:true,  noEnhance:true},
+          {emoji:'🌐', name:'Translation',         weight:25, core:false, noEnhance:false},
+          {emoji:'✏️', name:'Human Editing / QA', weight:10, core:false, noEnhance:false},
+        ],
+        ruleCheck: function(s) {
+          if (s[0]==='ai'||s[1]==='ai') return 'ai';
+          return null;
+        }
+      },
+    ]
+  },
+  interact: {
+    label: 'Interactive Content',
+    types: [
+      {
+        id:'game', icon:'🕹', name:'Game',
+        note:'Art & Graphics and Story/World both AI-Enhanced → AI-Generated.',
+        elements:[
+          {emoji:'🎨', name:'Art & Graphics',   weight:28, core:false, noEnhance:false},
+          {emoji:'📖', name:'Story / World',    weight:28, core:false, noEnhance:false},
+          {emoji:'🎤', name:'Voice Acting',     weight:18, core:false, noEnhance:false},
+          {emoji:'🎵', name:'BGM / Soundtrack', weight:14, core:false, noEnhance:false},
+          {emoji:'🧊', name:'3D Assets',        weight:12, core:false, noEnhance:false},
+        ],
+        ruleCheck: function(s) {
+          if ((s[0]==='enhance'||s[0]==='ai')&&(s[1]==='enhance'||s[1]==='ai')) return 'ai';
+          return null;
+        }
+      },
+      {
+        id:'vr', icon:'🥽', name:'VR / AR Experience',
+        note:'Environment Design and Avatar AI-Generated → AI-Generated.',
+        elements:[
+          {emoji:'🌐', name:'Environment Design', weight:35, core:true,  noEnhance:false},
+          {emoji:'👤', name:'Avatar / Character', weight:28, core:true,  noEnhance:false},
+          {emoji:'🎵', name:'Spatial Audio',      weight:18, core:false, noEnhance:false},
+          {emoji:'🧊', name:'3D Objects',         weight:12, core:false, noEnhance:false},
+          {emoji:'📖', name:'Narrative / Script', weight:7,  core:false, noEnhance:false},
+        ],
+        ruleCheck: function(s) {
+          if (s[0]==='ai'||s[1]==='ai') return 'ai';
+          return null;
+        }
+      },
+    ]
+  },
+  info: {
+    label: 'News & Informational Content',
+    types: [
+      {
+        id:'news', icon:'📰', name:'News Article',
+        note:'Factual Content, Journalist/Source, and Evidence are core — AI-Enhanced not allowed. Press Images AI-Enhanced permitted. Any core AI-Generated → AI-Generated.',
+        elements:[
+          {emoji:'📖', name:'Factual Content',      weight:35, core:true,  noEnhance:true},
+          {emoji:'👤', name:'Journalist / Source',  weight:26, core:true,  noEnhance:true},
+          {emoji:'📍', name:'Evidence / Reference', weight:24, core:true,  noEnhance:true},
+          {emoji:'🖼', name:'Press Images',         weight:10, core:false, noEnhance:false},
+          {emoji:'✏️', name:'Editing / Layout',     weight:5,  core:false, noEnhance:false},
+        ],
+        ruleCheck: function(s) {
+          if ([0,1,2].some(i=>s[i]==='ai')) return 'ai';
+          return null;
+        }
+      },
+      {
+        id:'report', icon:'📋', name:'Report / Research Paper',
+        note:'Research Content, Author(s), and Data/Sources are core. Writing Style AI-Enhanced permitted. Any core AI-Generated → AI-Generated.',
+        elements:[
+          {emoji:'📖', name:'Research Content', weight:40, core:true,  noEnhance:true},
+          {emoji:'👤', name:'Author(s)',         weight:22, core:true,  noEnhance:true},
+          {emoji:'📍', name:'Data & Sources',   weight:22, core:true,  noEnhance:true},
+          {emoji:'✍️', name:'Writing Style',    weight:10, core:false, noEnhance:false},
+          {emoji:'📊', name:'Charts / Visuals', weight:6,  core:false, noEnhance:false},
+        ],
+        ruleCheck: function(s) {
+          if ([0,1,2].some(i=>s[i]==='ai')) return 'ai';
+          return null;
+        }
+      },
+      {
+        id:'social', icon:'📲', name:'Social Media Post',
+        note:'Author/Account and Text Content are core — AI-Enhanced not allowed. Attached media AI-Enhanced triggers AI-Assisted. Attached media AI-Generated triggers AI-Generated.',
+        elements:[
+          {emoji:'👤', name:'Author / Account', weight:35, core:true,  noEnhance:true},
+          {emoji:'📖', name:'Text Content',     weight:35, core:true,  noEnhance:true},
+          {emoji:'🖼', name:'Attached Image',   weight:15, core:false, noEnhance:false},
+          {emoji:'🎬', name:'Attached Video',   weight:15, core:false, noEnhance:false},
+        ],
+        ruleCheck: function(s) {
+          if (s[0]==='ai'||s[1]==='ai') return 'ai';
+          if (s[2]==='ai'||s[3]==='ai') return 'ai';
+          if (s[2]==='enhance'||s[3]==='enhance') return 'enhance';
+          return null;
+        }
+      },
+      {
+        id:'ad', icon:'📣', name:'Advertisement',
+        note:'Model/Talent & Copy/Message cannot be AI-Enhanced. Either AI-Generated → AI-Generated. Visuals AI-Enhanced → 🟡 AI-Assisted (color correction, resize, background cleanup are common). Visuals AI-Generated → 🔴.',
+        elements:[
+          {emoji:'👤', name:'Model / Talent', weight:35, core:true,  noEnhance:true},
+          {emoji:'📖', name:'Copy / Message', weight:32, core:true,  noEnhance:true},
+          {emoji:'🖼', name:'Visuals',        weight:22, core:false, noEnhance:false},
+          {emoji:'🎵', name:'BGM',            weight:11, core:false, noEnhance:false},
+        ],
+        ruleCheck: function(s) {
+          if (s[0]==='ai'||s[1]==='ai') return 'ai';
+          if (s[2]==='ai') return 'ai';
+          if (s[2]==='enhance') return 'enhance';
+          return null;
+        }
+      },
+      {
+        id:'forensic', icon:'🔍', name:'Digital / Forensic Evidence',
+        note:'Critical for legal, journalistic, and civic contexts. All five core elements high-stakes — any AI-Generated → AI-Generated. Context/Caption Integrity catches real media + false descriptions.',
+        elements:[
+          {emoji:'🗂', name:'Evidence Source / Origin',      weight:25, core:true,  noEnhance:true},
+          {emoji:'👤', name:'Person / Voice / Likeness',     weight:22, core:true,  noEnhance:true},
+          {emoji:'🕐', name:'Timestamp / Location Metadata', weight:18, core:true,  noEnhance:true},
+          {emoji:'🔗', name:'Chain of Custody / Provenance', weight:13, core:true,  noEnhance:true},
+          {emoji:'📝', name:'Context / Caption Integrity',   weight:15, core:true,  noEnhance:true},
+          {emoji:'🎨', name:'Visual / Audio Enhancement',    weight:7,  core:false, noEnhance:false},
+        ],
+        ruleCheck: function(s) {
+          if ([0,1,2,3,4].some(i=>s[i]==='ai')) return 'ai';
+          return null;
+        }
+      },
+      {
+        id:'gov_comm', icon:'🏛', name:'Government / Public Communication',
+        note:'Official Message and Policy/Legal Accuracy are core — AI-Generated in either → AI-Generated. Regulatory Basis must be real. Writing/Formatting AI-Enhanced is permitted.',
+        elements:[
+          {emoji:'📢', name:'Official Message',        weight:35, core:true,  noEnhance:true},
+          {emoji:'⚖️', name:'Policy / Legal Accuracy', weight:30, core:true,  noEnhance:true},
+          {emoji:'📍', name:'Source / Citation',       weight:20, core:false, noEnhance:false},
+          {emoji:'✍️', name:'Writing / Formatting',    weight:10, core:false, noEnhance:false},
+          {emoji:'📋', name:'Regulatory Basis',        weight:5,  core:true,  noEnhance:true},
+        ],
+        ruleCheck: function(s) {
+          if (s[0]==='ai'||s[1]==='ai'||s[4]==='ai') return 'ai';
+          if ([2,3].filter(i=>s[i]==='ai'||s[i]==='enhance').length>=2) return 'enhance';
+          return null;
+        }
+      },
+      {
+        id:'legal_doc', icon:'⚖️', name:'Legal / Court Document',
+        note:'Legal Claim, Evidence Reference, and Attorney Attribution are core — any AI-Generated → AI-Generated. Drafting and Translation AI-Enhanced permitted.',
+        elements:[
+          {emoji:'📜', name:'Legal Claim',                   weight:35, core:true,  noEnhance:true},
+          {emoji:'🗂', name:'Evidence Reference',            weight:30, core:true,  noEnhance:true},
+          {emoji:'👤', name:'Attorney / Author Attribution', weight:20, core:true,  noEnhance:true},
+          {emoji:'✍️', name:'Drafting / Formatting',         weight:10, core:false, noEnhance:false},
+          {emoji:'🌐', name:'Translation',                   weight:5,  core:false, noEnhance:false},
+        ],
+        ruleCheck: function(s) {
+          if ([0,1,2].some(i=>s[i]==='ai')) return 'ai';
+          return null;
+        }
+      },
+    ]
+  },
+  edu: {
+    label: 'Education Content',
+    types: [
+      {
+        id:'student', icon:'📝', name:'Student Assignment',
+        note:'Ideas and Research/Sources are core — AI-generated ideas or research may require disclosure depending on school or course policy. Writing and Grammar AI-Enhanced permitted.',
+        elements:[
+          {emoji:'💡', name:'Ideas / Understanding', weight:35, core:true,  noEnhance:true},
+          {emoji:'📚', name:'Research / Sources',    weight:20, core:true,  noEnhance:true},
+          {emoji:'✍️', name:'Writing / Expression',  weight:25, core:false, noEnhance:false},
+          {emoji:'✏️', name:'Grammar / Editing',     weight:15, core:false, noEnhance:false},
+          {emoji:'📐', name:'Structure / Format',    weight:5,  core:false, noEnhance:false},
+        ],
+        ruleCheck: function(s) {
+          if (s[0]==='ai'||s[1]==='ai') return 'ai';
+          return null;
+        }
+      },
+      {
+        id:'lesson', icon:'🏫', name:'Curriculum / Lesson Plan',
+        note:'Learning Objectives are core. Instructional Design and Assessment AI-Enhanced permitted. Learning Objectives AI-Generated → AI-Generated.',
+        elements:[
+          {emoji:'🎯', name:'Learning Objectives',  weight:40, core:true,  noEnhance:true},
+          {emoji:'🗂', name:'Instructional Design', weight:30, core:false, noEnhance:false},
+          {emoji:'📊', name:'Assessment Design',    weight:20, core:false, noEnhance:false},
+          {emoji:'🖼', name:'Media / Visuals',      weight:10, core:false, noEnhance:false},
+        ],
+        ruleCheck: function(s) {
+          if (s[0]==='ai') return 'ai';
+          return null;
+        }
+      },
+      {
+        id:'elearn', icon:'💻', name:'E-Learning Module',
+        note:'Course Content and Learning Objectives are core. Narration and Visuals AI-Enhanced permitted. Core AI-Generated → AI-Generated.',
+        elements:[
+          {emoji:'📖', name:'Course Content',         weight:38, core:true,  noEnhance:true},
+          {emoji:'🎯', name:'Learning Objectives',    weight:22, core:true,  noEnhance:true},
+          {emoji:'🎤', name:'Narration / Voice-over', weight:20, core:false, noEnhance:false},
+          {emoji:'🎨', name:'Visuals / Animations',   weight:12, core:false, noEnhance:false},
+          {emoji:'📊', name:'Assessments / Quizzes',  weight:8,  core:false, noEnhance:false},
+        ],
+        ruleCheck: function(s) {
+          if (s[0]==='ai'||s[1]==='ai') return 'ai';
+          return null;
+        }
+      },
+      {
+        id:'interview', icon:'🎙', name:'Interview / Testimony',
+        note:'Speaker Identity and Voice/Likeness are core — AI-Generated in either → AI-Generated. Consent/Disclosure must be real. Transcript Accuracy AI-Enhanced permitted.',
+        elements:[
+          {emoji:'👤', name:'Speaker Identity',    weight:30, core:true,  noEnhance:true},
+          {emoji:'🎤', name:'Voice / Likeness',    weight:25, core:true,  noEnhance:true},
+          {emoji:'📝', name:'Transcript Accuracy', weight:20, core:false, noEnhance:false},
+          {emoji:'✂️', name:'Context / Editing',   weight:15, core:false, noEnhance:false},
+          {emoji:'📢', name:'Consent / Disclosure',weight:10, core:true,  noEnhance:true},
+        ],
+        ruleCheck: function(s) {
+          if (s[0]==='ai'||s[1]==='ai'||s[4]==='ai') return 'ai';
+          return null;
+        }
+      },
+    ]
+  },
+  aisys: {
+    label: 'AI System Transparency',
+    types: [
+      {
+        id:'chatbot', icon:'🤖', name:'AI Chatbot / Assistant',
+        note:'AI System mode: measures governance quality, not content origin. Human Oversight absent → Missing forces AI-Generated. Source Grounding absent → Partial forces AI-Assisted.',
+        elements:[
+          {emoji:'🧠', name:'Response Generation', weight:30, core:true,  noEnhance:false},
+          {emoji:'🧭', name:'Source Grounding',    weight:25, core:true,  noEnhance:false},
+          {emoji:'👁', name:'Human Oversight',     weight:20, core:false, noEnhance:false},
+          {emoji:'📢', name:'User Disclosure',     weight:15, core:false, noEnhance:false},
+          {emoji:'🚨', name:'Escalation Path',     weight:10, core:false, noEnhance:false},
+        ],
+        ruleCheck: function(s) {
+          if (s[2]==='ai') return 'ai';
+          if (s[1]==='ai') return 'enhance';
+          return null;
+        }
+      },
+      {
+        id:'llm', icon:'🧬', name:'LLM / Foundation Model',
+        note:'Model Card and Training Data Disclosure are core transparency elements. Safety Evaluation AI-Enhanced permitted (third-party audits). Core absent → AI-Generated.',
+        elements:[
+          {emoji:'📋', name:'Model Card / Documentation', weight:35, core:true,  noEnhance:true},
+          {emoji:'🗂', name:'Training Data Disclosure',   weight:28, core:true,  noEnhance:true},
+          {emoji:'🔬', name:'Safety Evaluation',          weight:22, core:false, noEnhance:false},
+          {emoji:'📢', name:'Intended Use Disclosure',    weight:15, core:false, noEnhance:false},
+        ],
+        ruleCheck: function(s) {
+          if (s[0]==='ai'||s[1]==='ai') return 'ai';
+          return null;
+        }
+      },
+      {
+        id:'ai_agent', icon:'🦾', name:'AI Agent',
+        note:'Action Authorization and Human-in-the-Loop are core — absent → AI-Generated override. Scope/Boundary Definition missing → AI-Generated. Audit Trail AI-Enhanced permitted.',
+        elements:[
+          {emoji:'🎯', name:'Action Authorization',       weight:30, core:true,  noEnhance:false},
+          {emoji:'👁', name:'Human-in-the-Loop',          weight:28, core:true,  noEnhance:false},
+          {emoji:'📐', name:'Scope / Boundary Definition',weight:22, core:true,  noEnhance:false},
+          {emoji:'📋', name:'Audit Trail',                weight:12, core:false, noEnhance:false},
+          {emoji:'📢', name:'User Disclosure',            weight:8,  core:false, noEnhance:false},
+        ],
+        ruleCheck: function(s) {
+          if (s[0]==='ai'||s[1]==='ai'||s[2]==='ai') return 'ai';
+          return null;
+        }
+      },
+      {
+        id:'recsys', icon:'📡', name:'Recommendation System',
+        note:'Algorithm Transparency and User Data Basis are core. Opt-Out / Control mechanism missing → forces AI-Assisted minimum. Personalization absent is not inherently bad.',
+        elements:[
+          {emoji:'🧠', name:'Algorithm Transparency', weight:32, core:true,  noEnhance:false},
+          {emoji:'🗂', name:'User Data Basis',        weight:28, core:true,  noEnhance:false},
+          {emoji:'🔧', name:'Opt-Out / Control',      weight:22, core:false, noEnhance:false},
+          {emoji:'📊', name:'Diversity / Filter Bubble',weight:10, core:false, noEnhance:false},
+          {emoji:'📢', name:'User Disclosure',        weight:8,  core:false, noEnhance:false},
+        ],
+        ruleCheck: function(s) {
+          if (s[0]==='ai'||s[1]==='ai') return 'ai';
+          if (s[2]==='ai') return 'enhance';
+          return null;
+        }
+      },
+      {
+        id:'ai_search', icon:'🔎', name:'AI Search',
+        note:'Source Citation is core — absent forces AI-Generated. Answer Grounding absent → AI-Assisted. Factual framing without sources is highest-risk AI search failure.',
+        elements:[
+          {emoji:'📍', name:'Source Citation',       weight:35, core:true,  noEnhance:false},
+          {emoji:'🧭', name:'Answer Grounding',      weight:28, core:true,  noEnhance:false},
+          {emoji:'👁', name:'Human Review / Curation',weight:18, core:false, noEnhance:false},
+          {emoji:'📢', name:'AI Disclosure',         weight:12, core:false, noEnhance:false},
+          {emoji:'✏️', name:'Correction / Feedback', weight:7,  core:false, noEnhance:false},
+        ],
+        ruleCheck: function(s) {
+          if (s[0]==='ai') return 'ai';
+          if (s[1]==='ai') return 'enhance';
+          return null;
+        }
+      },
+    ]
+  },
+  civic: {
+    label: 'Civic / Public Trust Content',
+    types: [
+      {
+        id:'election', icon:'🗳', name:'Election Content',
+        note:'Candidate / Party Identity and Factual Claim are core — any AI-Generated → AI-Generated. Disclosure of AI involvement is required. This category has the highest civic risk.',
+        elements:[
+          {emoji:'👤', name:'Candidate / Party Identity', weight:32, core:true,  noEnhance:true},
+          {emoji:'📖', name:'Factual Claim',              weight:30, core:true,  noEnhance:true},
+          {emoji:'📍', name:'Source / Evidence',          weight:20, core:true,  noEnhance:true},
+          {emoji:'📢', name:'AI Use Disclosure',          weight:12, core:true,  noEnhance:true},
+          {emoji:'🎨', name:'Visuals / Media',            weight:6,  core:false, noEnhance:false},
+        ],
+        ruleCheck: function(s) {
+          if ([0,1,2,3].some(i=>s[i]==='ai')) return 'ai';
+          return null;
+        }
+      },
+      {
+        id:'political_ad', icon:'📺', name:'Political Advertisement',
+        note:'Candidate/Sponsor Identity and Core Message are core — AI-Generated → AI-Generated. Visual AI-Generated → AI-Generated (risk of synthetic political imagery). Paid-for disclosure must be real.',
+        elements:[
+          {emoji:'👤', name:'Candidate / Sponsor Identity', weight:30, core:true,  noEnhance:true},
+          {emoji:'📖', name:'Core Message / Claim',         weight:28, core:true,  noEnhance:true},
+          {emoji:'📢', name:'Paid-for Disclosure',          weight:20, core:true,  noEnhance:true},
+          {emoji:'🖼', name:'Visuals / Media',              weight:14, core:false, noEnhance:false},
+          {emoji:'🎵', name:'Audio / Voice',                weight:8,  core:false, noEnhance:false},
+        ],
+        ruleCheck: function(s) {
+          if ([0,1,2].some(i=>s[i]==='ai')) return 'ai';
+          if (s[3]==='ai') return 'ai';
+          if (s[3]==='enhance'||s[4]==='ai') return 'enhance';
+          return null;
+        }
+      },
+      {
+        id:'pub_health', icon:'🏥', name:'Public Health Information',
+        note:'Health Claim and Source/Authority are core — AI-Generated → AI-Generated. Issuing Authority must be real. Visual instructions AI-Enhanced permitted but medical accuracy must remain human-verified.',
+        elements:[
+          {emoji:'💊', name:'Health Claim / Guidance',   weight:35, core:true,  noEnhance:true},
+          {emoji:'📍', name:'Source / Medical Authority',weight:28, core:true,  noEnhance:true},
+          {emoji:'👤', name:'Issuing Authority',         weight:20, core:true,  noEnhance:true},
+          {emoji:'🎨', name:'Visual Instructions',       weight:10, core:false, noEnhance:false},
+          {emoji:'🌐', name:'Translation',               weight:7,  core:false, noEnhance:false},
+        ],
+        ruleCheck: function(s) {
+          if ([0,1,2].some(i=>s[i]==='ai')) return 'ai';
+          return null;
+        }
+      },
+      {
+        id:'emergency', icon:'🚨', name:'Emergency Alert',
+        note:'Alert Message and Issuing Authority are core — any AI-Generated → AI-Generated. Accuracy/Verification must be real. Even AI-Enhanced on core elements is not permitted for safety-critical alerts.',
+        elements:[
+          {emoji:'🚨', name:'Alert Message / Instruction', weight:40, core:true,  noEnhance:true},
+          {emoji:'👤', name:'Issuing Authority',           weight:30, core:true,  noEnhance:true},
+          {emoji:'✅', name:'Accuracy / Verification',    weight:20, core:true,  noEnhance:true},
+          {emoji:'📡', name:'Distribution Channel',       weight:10, core:false, noEnhance:false},
+        ],
+        ruleCheck: function(s) {
+          if ([0,1,2].some(i=>s[i]==='ai')) return 'ai';
+          return null;
+        }
+      },
+    ]
+  },
+};
+
+/* ════════════════════════════════════════
+   WEIGHT VALIDATION (dev safeguard)
+════════════════════════════════════════ */
+(function validateWeights() {
+  Object.entries(TAXONOMY).forEach(([catKey, cat]) => {
+    cat.types.forEach(type => {
+      const total = type.elements.reduce((s, el) => s + el.weight, 0);
+      if (total !== 100) console.warn(`[v5.1] ⚠️ Weight mismatch "${catKey} > ${type.id}": ${total}`);
+    });
+  });
+})();
+
+/* ════════════════════════════════════════
+   STATE
+════════════════════════════════════════ */
+let currentCat = null, currentType = null;
+let elemStates = {}, verifStates = {}, transpStates = {}, indepVerifState = 'none';
+let verifBadgeMax = 0;
+let userSelectedVerif = false;
+
+/* ════════════════════════════════════════
+   TRUST & ACCOUNTABILITY LABELS
+════════════════════════════════════════ */
+// ── VERIFICATION: "Was the content checked?" (process of checking)
+const VERIFICATION_LABELS = {
+  human_review:    '👁 Human Reviewed',
+  source_verified: '📍 Sources Verified',
+  chain_of_custody:'🔗 Chain of Custody',
+};
+
+// ── TRANSPARENCY: "What has been disclosed?" (openness of information)
+const TRANSPARENCY_LABELS = {
+  ai_disclosed:     '📢 AI Use Disclosed',
+  creator_id:       '👤 Creator / Publisher Identified',
+  provenance:       '🪪 Provenance Available',
+  source_evidence:  '📍 Source / Evidence Provided',
+  contact_avail:    '📬 Contact / Appeal Available',
+  correction_avail: '✏️ Correction Available',
+};
+
+// Context-sensitive badge display per content type
+const VERIFICATION_CONTEXTS = {
+  source_verified: ['news','report','infographic','student','lesson','elearn',
+                    'forensic','gov_comm','legal_doc','interview',
+                    'election','political_ad','pub_health','emergency',
+                    'ai_search','llm'],
+  chain_of_custody:['forensic','legal_doc','doc','election','political_ad'],
+};
+const TRANSPARENCY_CONTEXTS = {
+  ai_disclosed:     null,  // always shown
+  creator_id:       null,  // always shown
+  provenance:       null,  // always shown
+  source_evidence:  null,  // always shown
+  contact_avail:    null,  // always shown
+  correction_avail: null,  // always shown
+};
+
+function toggleVerif(key, btn) {
+  if (verifStates[key]) { delete verifStates[key]; btn.classList.remove('active'); }
+  else { verifStates[key] = true; btn.classList.add('active'); }
+  calcAndShow();
+}
+function toggleTransp(key, btn) {
+  if (transpStates[key]) { delete transpStates[key]; btn.classList.remove('active'); }
+  else { transpStates[key] = true; btn.classList.add('active'); }
+  calcAndShow();
+}
+function setIndepVerif(level, btn) {
+  indepVerifState = level;
+  userSelectedVerif = true;
+  document.querySelectorAll('.iv-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  calcAndShow();
+}
+
+/* ════════════════════════════════════════
+   STEP 1: SELECT CATEGORY
+════════════════════════════════════════ */
+function selectCat(cat, btn) {
+  currentCat = cat; currentType = null;
+  elemStates = {}; verifStates = {}; transpStates = {}; indepVerifState = 'none'; userSelectedVerif = false;
+  document.querySelectorAll('.cat-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+
+  const types = TAXONOMY[cat].types;
+  document.getElementById('subGrid').innerHTML = types.map(t =>
+    `<button class="sub-btn" onclick="selectType('${cat}','${t.id}',this)">
+      <span class="sub-btn-icon">${t.icon}</span>
+      <span class="sub-btn-name">${t.name}</span>
+    </button>`
+  ).join('');
+
+  document.getElementById('subSection').classList.add('visible');
+  document.getElementById('elemSection').classList.remove('visible');
+  document.getElementById('resultSection').classList.remove('visible');
+  resetScorePanel();
+  sendHeight();
+  setTimeout(() => smoothScrollTo('subSection', 60), 150);
+}
+
+/* ════════════════════════════════════════
+   STEP 2: SELECT TYPE
+════════════════════════════════════════ */
+function selectType(cat, typeId, btn) {
+  currentType = TAXONOMY[cat].types.find(t => t.id === typeId);
+  elemStates = {}; verifStates = {}; transpStates = {}; indepVerifState = 'none'; userSelectedVerif = false;
+  document.querySelectorAll('.sub-btn').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('.iv-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+
+  renderElements(currentType);
+  document.getElementById('elemSection').classList.add('visible');
+  document.getElementById('resultSection').classList.remove('visible');
+  document.querySelectorAll('.trust-badge').forEach(b => b.classList.remove('active'));
+  document.getElementById('trustSection').classList.add('visible');
+
+  resetScorePanel();
+  sendHeight();
+  setTimeout(() => smoothScrollTo('elemSection', 60), 150);
+}
+
+/* ════════════════════════════════════════
+   RENDER ELEMENTS
+════════════════════════════════════════ */
+function renderElements(type) {
+  const isAiSys = currentCat === 'aisys';
+
+  if (isAiSys) {
+    document.getElementById('elemDesc').innerHTML =
+      `<strong>${type.name}</strong> — ${type.note}<br><br>` +
+      `<span style="color:var(--blue)">🔵 AI System mode — labels reflect <strong>governance quality</strong>, not content origin.</span>`;
+  } else {
+    document.getElementById('elemDesc').innerHTML =
+      `<strong>${type.name}</strong> — ${type.note}`;
+  }
+
+  document.getElementById('elemListUI').innerHTML = type.elements.map((el, i) => {
+    const enh  = el.noEnhance ? 'disabled-opt' : '';
+    const eOC  = el.noEnhance ? '' : `setElem(${i},'enhance',this)`;
+    const eTi  = el.noEnhance ? 'title="AI-Enhanced not allowed for this identity element"' : '';
+    const aCls = isAiSys ? 'aisys-mode' : '';
+    const labR = isAiSys ? `<span class="opt-label opt-label-std"></span><span class="opt-label-aisys">Verified</span>`
+                         : `<span class="opt-label opt-label-std">Real</span><span class="opt-label-aisys"></span>`;
+    const labE = isAiSys ? `<span class="opt-label opt-label-std"></span><span class="opt-label-aisys">Partial</span>`
+                         : `<span class="opt-label opt-label-std">Enhanced</span><span class="opt-label-aisys"></span>`;
+    const labA = isAiSys ? `<span class="opt-label opt-label-std"></span><span class="opt-label-aisys">Missing</span>`
+                         : `<span class="opt-label opt-label-std">Generated</span><span class="opt-label-aisys"></span>`;
+    return `<div class="elem-row" id="elemRow_${i}">
+      <div class="elem-row-header">
+        <div class="elem-row-info">
+          <span class="elem-emoji">${el.emoji}</span>
+          <div class="elem-name-wrap">
+            <span class="elem-name">${el.name}</span>
+            ${el.core ? '<span class="elem-core-tag">CORE</span>' : ''}
+          </div>
+        </div>
+        <div class="elem-divider"></div>
+        <div class="elem-options ${aCls}">
+          <button class="elem-opt" onclick="setElem(${i},'real',this)">
+            <span class="opt-icon">✅</span>${labR}
+          </button>
+          <button class="elem-opt ${enh}" onclick="${eOC}" ${eTi}>
+            <span class="opt-icon">🔧</span>${labE}
+          </button>
+          <button class="elem-opt" onclick="setElem(${i},'ai',this)">
+            <span class="opt-icon">🤖</span>${labA}
+          </button>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+
+  renderVerifBadges(type);
+  renderTranspBadges(type);
+}
+
+function renderVerifBadges(type) {
+  const all = [
+    {key:'source_verified', label:'📍 Sources Verified'},
+    {key:'chain_of_custody',label:'🔗 Chain of Custody'},
+  ];
+  const visible = all.filter(function(b) {
+    return VERIFICATION_CONTEXTS[b.key] === null || VERIFICATION_CONTEXTS[b.key].includes(type.id);
+  });
+  verifBadgeMax = visible.length; // store for dynamic denominator in calcAndShow
+  document.getElementById('verifBadges').innerHTML = visible
+    .map(function(b) {
+      return '<button class="trust-badge verif-badge" onclick="toggleVerif(\'' + b.key + '\',this)">' + b.label + '</button>';
+    })
+    .join('');
+}
+
+function renderTranspBadges(type) {
+  const all = [
+    {key:'ai_disclosed',     label:'📢 AI Use Disclosed'},
+    {key:'creator_id',       label:'👤 Creator / Publisher Identified'},
+    {key:'provenance',       label:'🪪 Provenance Available'},
+    {key:'source_evidence',  label:'📍 Source / Evidence Provided'},
+    {key:'contact_avail',    label:'📬 Contact / Appeal Available'},
+    {key:'correction_avail', label:'✏️ Correction Available'},
+  ];
+  document.getElementById('transpBadges').innerHTML = all
+    .map(function(b) {
+      return '<button class="trust-badge transp-badge" onclick="toggleTransp(\'' + b.key + '\',this)">' + b.label + '</button>';
+    })
+    .join('');
+}
+
+/* ════════════════════════════════════════
+   STEP 3: SET ELEMENT
+════════════════════════════════════════ */
+function setElem(idx, state, btn) {
+  elemStates[idx] = state;
+  const row = document.getElementById(`elemRow_${idx}`);
+  row.querySelectorAll('.elem-opt').forEach(o => o.classList.remove('sel-real','sel-enhance','sel-ai'));
+  row.classList.remove('state-real','state-enhance','state-ai');
+  btn.classList.add('sel-' + (state === 'real' ? 'real' : state === 'enhance' ? 'enhance' : 'ai'));
+  row.classList.add('state-' + (state === 'real' ? 'real' : state === 'enhance' ? 'enhance' : 'ai'));
+  calcAndShow();
+  sendHeight();
+}
+
+/* ════════════════════════════════════════
+   CALCULATE & DISPLAY
+════════════════════════════════════════ */
+function calcAndShow() {
+  if (!currentType) return;
+  const els = currentType.elements;
+  const totalSet = Object.keys(elemStates).length;
+  if (totalSet === 0) { resetScorePanel(); return; }
+
+  // ── AI Content Score ──
+  let rawScore = 0;
+  const breakdown = [];
+  els.forEach((el, i) => {
+    const st = elemStates[i];
+    if (st === undefined) return;
+    const pts = st === 'real' ? 0 : st === 'enhance' ? el.weight * 0.5 : el.weight;
+    rawScore += pts;
+    breakdown.push({ emoji: el.emoji, name: el.name, state: st, pts, weight: el.weight });
+  });
+
+  let ruleResult = currentType.ruleCheck ? currentType.ruleCheck(elemStates) : null;
+  rawScore = Math.round(rawScore);
+  let forcedLabel = null;
+  if (ruleResult === 'ai') { forcedLabel = 'ai'; }
+  else if (ruleResult === 'enhance') { if (rawScore <= 30) rawScore = 31; forcedLabel = 'enhance'; }
+  const aiScore = forcedLabel === 'ai' ? 100 : rawScore;
+
+  let labelEmoji, labelText, involvementLevel, labelClass, cardClass, aiDesc;
+  if (forcedLabel === 'ai' || aiScore > 65) {
+    labelEmoji = '🔴'; labelText = 'AI-Generated'; involvementLevel = 'High AI Involvement';
+    labelClass = 'label-red'; cardClass = 'r-red';
+    aiDesc = 'Most core elements are AI-generated. Human role is limited to prompting, selection, or minor editing. High involvement does not mean low quality — context and verification matter.';
+  } else if (forcedLabel === 'enhance' || aiScore > 30) {
+    labelEmoji = '🟡'; labelText = 'AI-Assisted'; involvementLevel = 'Moderate AI Involvement';
+    labelClass = 'label-yellow'; cardClass = 'r-yellow';
+    aiDesc = 'Some key elements are AI-generated or AI-enhanced. Human direction is maintained. Moderate involvement can reflect responsible, efficient use of AI tools.';
+  } else if (aiScore === 0) {
+    labelEmoji = '🟢'; labelText = 'Human-led'; involvementLevel = 'No AI Involvement';
+    labelClass = 'label-green'; cardClass = 'r-green';
+    aiDesc = 'No AI involvement detected across all elements. Fully human-created content.';
+  } else {
+    labelEmoji = '🟢'; labelText = 'Human-led'; involvementLevel = 'Low AI Involvement';
+    labelClass = 'label-green'; cardClass = 'r-green';
+    aiDesc = 'All core elements are real. AI plays only a supporting role. Low involvement does not automatically certify factual accuracy — check Verification score.';
+  }
+
+  // ── TRUSTWORTHINESS = Verification + Transparency ──
+  // Verification axis (was "checked"?)
+  const activeVerif = Object.keys(verifStates);
+  const verifBadgeScore = activeVerif.length;
+  const indepBonus = { none: 0, human: 2, expert: 4, third: 6 }[indepVerifState] || 0;
+  const verifTotal = indepBonus + verifBadgeScore;
+
+  // Transparency axis
+  const activeTransp = Object.keys(transpStates);
+  const transpScore = activeTransp.length; // 0–6
+
+  // Dynamic denominator: only count what's actually available to this user
+  // verifBadgeMax is set by renderVerifBadges() when type is selected
+  const twMax = 6 + verifBadgeMax + 6; // indepMax + visibleBadges + transpMax
+  const twRaw = verifTotal + transpScore;
+  const twPct = twMax > 0 ? Math.round(twRaw / twMax * 100) : 0;
+  let twLabel, twClass, twDisplayPct;
+  // hasAnyVerifInput: true if user has touched the verification section at all
+  // We track this via a separate flag rather than just indepVerifState
+  const hasAnyVerifInput = userSelectedVerif || verifBadgeScore > 0 || transpScore > 0;
+  const isNotVerifiedOnly = userSelectedVerif && indepVerifState === 'none' && verifBadgeScore === 0 && transpScore === 0;
+  if (!hasAnyVerifInput)  { twLabel = 'Not assessed'; twClass = 'tw-none';     twDisplayPct = 0; }
+  else if (isNotVerifiedOnly) { twLabel = 'Very Low'; twClass = 'tw-low';      twDisplayPct = 5; }
+  else if (twPct <= 14)   { twLabel = 'Very Low';     twClass = 'tw-low';      twDisplayPct = twPct; }
+  else if (twPct <= 35)   { twLabel = 'Low';          twClass = 'tw-low';      twDisplayPct = twPct; }
+  else if (twPct <= 57)   { twLabel = 'Moderate';     twClass = 'tw-moderate'; twDisplayPct = twPct; }
+  else if (twPct <= 85)   { twLabel = 'High';         twClass = 'tw-high';     twDisplayPct = twPct; }
+  else                    { twLabel = 'Excellent';     twClass = 'tw-excellent';twDisplayPct = twPct; }
+
+  // Verification Level label (from indepVerif radio)
+  let verifLevel, verifClass, verifIcon, verifDesc;
+  if (indepVerifState === 'third') {
+    verifLevel = 'Independently Verified'; verifClass = 'vl-indep'; verifIcon = '✅';
+    verifDesc = 'Verified by an independent third party. Suitable for legal, civic, and high-stakes contexts.';
+  } else if (indepVerifState === 'expert') {
+    verifLevel = 'Expert Reviewed'; verifClass = 'vl-expert'; verifIcon = '🔵';
+    verifDesc = 'Reviewed by a subject-matter expert. Suitable for journalism, education, and government use.';
+  } else if (indepVerifState === 'human') {
+    verifLevel = 'Human Reviewed'; verifClass = 'vl-human'; verifIcon = '🟡';
+    verifDesc = 'Basic human oversight applied. Good for general content.';
+  } else {
+    verifLevel = 'Not Verified'; verifClass = 'vl-none'; verifIcon = '⚠️';
+    verifDesc = 'No verification applied. This is the lowest trust level — content has not been reviewed by any human, expert, or third party.';
+  }
+
+  // For backward-compat references
+  const badgeScore   = verifBadgeScore;
+  const accountScore = transpScore; // used in result detail
+  const accountLabel = twPct === 100 ? 'Full' : twPct >= 70 ? 'Partial' : twPct >= 20 ? 'Minimal' : 'None';
+
+  // ── Update sticky score panel ──
+  const panel = document.getElementById('scorePanel');
+  panel.className = 'score-panel ' + labelClass;
+  document.getElementById('aiScoreVal').textContent = aiScore;
+  document.getElementById('aiScoreLabel').textContent = involvementLevel;
+  document.getElementById('aiBarFill').style.width = aiScore + '%';
+
+  // Trustworthiness axis
+  const twEl = document.getElementById('trustworthyVal');
+  twEl.textContent = twLabel;
+  twEl.className = 'score-trust-val ' + twClass;
+  document.getElementById('trustBarFill').style.width = twDisplayPct + '%';
+
+  // Live score hint — clean, no explanation needed
+  const hint = document.getElementById('twScoreHint');
+  if (hint) {
+    if (twRaw === 0) {
+      hint.innerHTML = 'Select verification level and transparency items to build the score.';
+    } else if (twRaw >= twMax) {
+      hint.innerHTML = '🏆 Maximum score reached.';
+    } else {
+      hint.innerHTML = twRaw + ' / ' + twMax + ' pts selected';
+    }
+  }
+
+  // ── Result card ──
+  const rc = document.getElementById('resultCard');
+  rc.className = 'result-card ' + cardClass;
+  document.getElementById('resultLabel').textContent = `${labelEmoji} ${labelText}`;
+  document.getElementById('resultBadge').textContent = `AI Involvement: ${aiScore}/100 · ${involvementLevel}`;
+  document.getElementById('resultDesc').textContent = aiDesc;
+
+  const isAiSys = currentCat === 'aisys';
+
+  // 2-axis result pills
+  document.getElementById('resultAxes').innerHTML =
+    `<div class="result-axis-pill ai-pill"><span class="rap-label">AI Involvement</span><span class="rap-val">${aiScore}</span><span class="rap-sub">/100</span></div>` +
+    `<div class="result-axis-pill tr-pill"><span class="rap-label">Trustworthiness</span><span class="rap-val" style="font-size:14px;font-weight:900">${twLabel}</span></div>`;
+
+  // Trustworthiness detail in result card
+  const vla = document.getElementById('verifLevelArea');
+  const hasAnyTrust = indepVerifState !== 'none' || verifBadgeScore > 0 || transpScore > 0;
+  if (hasAnyTrust) {
+    const verifDetail = verifBadgeScore > 0
+      ? `<div class="tw-detail-row"><span>📋 Verification badges</span><span class="tw-detail-val">${verifBadgeScore}/${verifBadgeMax} · ${activeVerif.map(k=>VERIFICATION_LABELS[k]).join(', ')}</span></div>` : '';
+    const transpDetail = transpScore > 0
+      ? `<div class="tw-detail-row"><span>📢 Transparency items</span><span class="tw-detail-val">${transpScore}/6 · ${activeTransp.map(k=>TRANSPARENCY_LABELS[k]).join(', ')}</span></div>` : '';
+    vla.innerHTML = `<div class="verif-level-wrap ${verifClass}">
+      <span class="verif-level-icon">${verifIcon}</span>
+      <div class="verif-level-text" style="flex:1">
+        <span class="verif-level-label">Trustworthiness Detail</span>
+        <span class="verif-level-name">${twLabel} · ${verifLevel}</span>
+        <span class="verif-level-desc">${verifDesc}</span>
+        <div class="tw-detail-grid" style="margin-top:6px">
+          ${verifDetail}${transpDetail}
+        </div>
+      </div>
+    </div>`;
+  } else {
+    vla.innerHTML = '';
+  }
+
+  // Truthfulness note — always shown (not just low-score), neutral wording
+  const tnBox = document.getElementById('truthNoteBox');
+  if (!isAiSys) {
+    tnBox.style.display = 'block';
+    tnBox.innerHTML = `💡 AI Involvement ≠ quality or truth. A human-written piece can still be false; an AI-assisted piece can be excellent. Check Verification and Accountability for a fuller picture.`;
+  } else {
+    tnBox.style.display = 'none';
+  }
+
+  // Override notice
+  const ov = document.getElementById('overrideNotice');
+  if (forcedLabel === 'ai') {
+    ov.innerHTML = `<div class="override-notice">⚡ <strong>Rule Override</strong> — A core identity element is AI-Generated, forcing 🔴 AI-Generated regardless of total score.</div>`;
+  } else if (forcedLabel === 'enhance') {
+    ov.innerHTML = `<div class="override-notice" style="border-color:var(--yellow-border);background:rgba(139,94,0,0.06);color:var(--yellow);">⚠️ <strong>Minimum Rule Applied</strong> — A key element condition forces at least 🟡 AI-Assisted.</div>`;
+  } else {
+    ov.innerHTML = '';
+  }
+
+  // Verification + Transparency badges in result
+  const trustArea = document.getElementById('trustResultArea');
+  let resultHtml = '';
+  if (activeVerif.length > 0) {
+    resultHtml += `<div style="font-size:10px;color:var(--teal);margin-bottom:4px;font-family:'Space Mono',monospace;letter-spacing:0.08em;">🔍 VERIFICATION</div>`;
+    resultHtml += `<div class="trust-result-badges">${activeVerif.map(k=>`<span class="trust-result-badge" style="background:rgba(13,110,110,0.08);border-color:var(--teal-border);color:var(--teal)">${VERIFICATION_LABELS[k]}</span>`).join('')}</div>`;
+  }
+  if (activeTransp.length > 0) {
+    resultHtml += `<div style="font-size:10px;color:var(--purple);margin-top:6px;margin-bottom:4px;font-family:'Space Mono',monospace;letter-spacing:0.08em;">📢 TRANSPARENCY</div>`;
+    resultHtml += `<div class="trust-result-badges">${activeTransp.map(k=>`<span class="trust-result-badge" style="background:rgba(91,33,182,0.08);border-color:var(--purple-border);color:var(--purple)">${TRANSPARENCY_LABELS[k]}</span>`).join('')}</div>`;
+  }
+  trustArea.innerHTML = resultHtml;
+
+  // Breakdown
+  const isAiSysBreakdown = currentCat === 'aisys';
+  const bd = document.getElementById('resultBreakdown');
+  const formulaLine = isAiSysBreakdown
+    ? `<div style="font-size:10px;color:var(--ink3);margin-bottom:6px"><strong style="color:var(--green)">✅ Verified</strong> = 0 pts &nbsp;·&nbsp; <strong style="color:var(--yellow)">⚠️ Partial</strong> = ½ weight &nbsp;·&nbsp; <strong style="color:var(--red)">❌ Missing</strong> = full weight</div>`
+    : `<div style="font-size:10px;color:var(--ink3);margin-bottom:6px"><strong style="color:var(--green)">Real</strong> = 0 pts &nbsp;·&nbsp; <strong style="color:var(--yellow)">AI-Enhanced</strong> = ½ weight &nbsp;·&nbsp; <strong style="color:var(--red)">AI-Generated</strong> = full weight</div>`;
+  bd.innerHTML = formulaLine + breakdown.map(b => {
+    const cls = b.state==='real' ? 'rv-0' : b.state==='enhance' ? 'rv-half' : 'rv-full';
+    const lbl = isAiSysBreakdown
+      ? (b.state==='real' ? 'Verified' : b.state==='enhance' ? 'Partial' : 'Missing')
+      : (b.state==='real' ? 'Real' : b.state==='enhance' ? 'AI-Enhanced' : 'AI-Generated');
+    return `<div class="rb-row">
+      <span class="rb-elem">${b.emoji} ${b.name} <span style="opacity:.5;font-size:10px">(${lbl})</span></span>
+      <span class="rb-val ${cls}">+${b.pts%1===0 ? b.pts : b.pts.toFixed(1)} pts</span>
+    </div>`;
+  }).join('');
+
+  const allSet = Object.keys(elemStates).length === els.length;
+  const rs = document.getElementById('resultSection');
+  const wasHidden = !rs.classList.contains('visible');
+  if (allSet) {
+    rs.classList.add('visible');
+    document.getElementById('exportPanel').style.display = 'block';
+    if (wasHidden) setTimeout(() => smoothScrollTo('trustSection', 60), 150);
+  } else {
+    rs.classList.remove('visible');
+    document.getElementById('exportPanel').style.display = 'none';
+  }
+}
+
+/* ════════════════════════════════════════
+   EXPORT: Text / HTML / Image
+════════════════════════════════════════ */
+
+// ── shared data builder ──
+function getLabelData() {
+  const typeName     = currentType ? currentType.name : '';
+  const catName      = currentCat  ? TAXONOMY[currentCat].label : '';
+  const aiScoreVal   = document.getElementById('aiScoreVal').textContent;
+  const aiLabelEl    = document.getElementById('resultLabel').textContent.trim();  // e.g. "🔴 AI-Generated"
+  const aiLevelEl    = document.getElementById('aiScoreLabel').textContent.trim(); // e.g. "High AI Involvement"
+  const twVal        = document.getElementById('trustworthyVal').textContent.trim();
+
+  const activeVerifKeys  = Object.keys(verifStates);
+  const activeTranspKeys = Object.keys(transpStates);
+
+  const indepMap = { none:'Not verified', human:'Human reviewed', expert:'Expert reviewed', third:'Independently verified' };
+  const indepText = indepMap[indepVerifState] || 'Not verified';
+
+  const verifBadgeTexts  = activeVerifKeys.map(k  => VERIFICATION_LABELS[k]);
+  const transpBadgeTexts = activeTranspKeys.map(k => TRANSPARENCY_LABELS[k]);
+
+  return { typeName, catName, aiScoreVal, aiLabelEl, aiLevelEl, twVal,
+           indepText, verifBadgeTexts, transpBadgeTexts };
+}
+
+// ── 1. Emoji / plain-text copy ──
+function exportEmoji() {
+  const d = getLabelData();
+  const verifLine  = d.verifBadgeTexts.length  ? `\n  📋 ${d.verifBadgeTexts.join(' · ')}` : '';
+  const transpLine = d.transpBadgeTexts.length ? `\n  📢 ${d.transpBadgeTexts.join(' · ')}` : '';
+
+  const text =
+`━━━━━━━━━━━━━━━━━━━━━━━━━
+AI NUTRITION LABEL
+${d.typeName}${d.catName ? ' · ' + d.catName : ''}
+━━━━━━━━━━━━━━━━━━━━━━━━━
+${d.aiLabelEl}
+AI Involvement: ${d.aiScoreVal}/100 (${d.aiLevelEl})
+
+Trustworthiness: ${d.twVal}
+  👁 ${d.indepText}${verifLine}${transpLine}
+━━━━━━━━━━━━━━━━━━━━━━━━━
+Generated by AI Nutrition Label Calculator`;
+
+  copyToClipboard(text, 'Text label copied!');
+}
+
+// ── 2. HTML badge snippet ──
+function exportHTML() {
+  const d = getLabelData();
+
+  // pick card color
+  const aiNum = parseInt(d.aiScoreVal) || 0;
+  const forcedLabel = document.getElementById('resultCard').className;
+  const isRed    = forcedLabel.includes('r-red');
+  const isYellow = forcedLabel.includes('r-yellow');
+  const bgColor  = isRed ? '#FFF1F1' : isYellow ? '#FFFBEA' : '#F0FFF6';
+  const bdColor  = isRed ? '#FECACA' : isYellow ? '#FDE68A' : '#A7F3D0';
+  const aiColor  = isRed ? '#991B1B' : isYellow ? '#92400E' : '#065F46';
+
+  const verifLine  = d.verifBadgeTexts.length  ? `<div style="margin-top:4px;font-size:11px;color:#555">${d.verifBadgeTexts.map(t=>`<span style="display:inline-block;margin:2px 3px 0 0;padding:1px 7px;border-radius:10px;background:#E6FAF8;border:1px solid #9DE0D8;color:#0D6E6E">${t}</span>`).join('')}</div>` : '';
+  const transpLine = d.transpBadgeTexts.length ? `<div style="margin-top:4px;font-size:11px;color:#555">${d.transpBadgeTexts.map(t=>`<span style="display:inline-block;margin:2px 3px 0 0;padding:1px 7px;border-radius:10px;background:#F5F3FF;border:1px solid #C4B5FD;color:#5B21B6">${t}</span>`).join('')}</div>` : '';
+
+  const html =
+`<!-- AI Nutrition Label — generated by LabelAI -->
+<div style="font-family:sans-serif;border:2px solid ${bdColor};background:${bgColor};border-radius:12px;padding:14px 18px;max-width:400px;line-height:1.5">
+  <div style="font-size:10px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:#888;margin-bottom:4px">AI Nutrition Label</div>
+  <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px">
+    <div>
+      <div style="font-size:20px;font-weight:900;color:${aiColor}">${d.aiLabelEl}</div>
+      <div style="font-size:11px;color:#555;margin-top:2px">${d.typeName}</div>
+    </div>
+    <div style="text-align:right">
+      <div style="font-size:10px;color:#888">AI Involvement</div>
+      <div style="font-size:22px;font-weight:700;color:${aiColor};line-height:1">${d.aiScoreVal}<span style="font-size:12px">/100</span></div>
+      <div style="font-size:10px;color:#888;margin-top:4px">Trustworthiness</div>
+      <div style="font-size:14px;font-weight:700;color:#1A4A8B">${d.twVal}</div>
+    </div>
+  </div>
+  <div style="margin-top:8px;font-size:11px;color:#555">👁 ${d.indepText}</div>
+  ${verifLine}${transpLine}
+  <div style="margin-top:8px;font-size:9px;color:#aaa">Generated by AI Nutrition Label Calculator</div>
+</div>`;
+
+  copyToClipboard(html, 'HTML badge copied!');
+}
+
+// ── 3. PNG image download ──
+function exportImage() {
+  const d = getLabelData();
+  const canvas = document.createElement('canvas');
+  const dpr = 2; // retina
+  const W = 480, H = 260;
+  canvas.width  = W * dpr;
+  canvas.height = H * dpr;
+  const ctx = canvas.getContext('2d');
+  ctx.scale(dpr, dpr);
+
+  // background
+  const forcedLabel = document.getElementById('resultCard').className;
+  const isRed    = forcedLabel.includes('r-red');
+  const isYellow = forcedLabel.includes('r-yellow');
+  const bg    = isRed ? '#FFF1F1' : isYellow ? '#FFFBEA' : '#F0FFF6';
+  const bd    = isRed ? '#FCA5A5' : isYellow ? '#FDE68A' : '#6EE7B7';
+  const mainC = isRed ? '#991B1B' : isYellow ? '#92400E' : '#065F46';
+  const darkC = '#1A1814';
+
+  // card bg + border
+  roundRect(ctx, 0, 0, W, H, 16, bg, bd, 2);
+
+  // header bar
+  roundRect(ctx, 0, 0, W, 44, 16, darkC, 'transparent', 0, true);
+  ctx.fillStyle = '#fff';
+  ctx.font = `700 11px "Space Mono", monospace`;
+  ctx.fillText('AI NUTRITION LABEL', 18, 27);
+  ctx.font = `400 10px "Space Mono", monospace`;
+  ctx.fillStyle = 'rgba(255,255,255,0.55)';
+  ctx.fillText(d.typeName.toUpperCase(), 18, 40);
+
+  // AI label (big)
+  ctx.fillStyle = mainC;
+  ctx.font = `900 26px Barlow, sans-serif`;
+  ctx.fillText(d.aiLabelEl, 18, 80);
+
+  // AI Involvement score
+  ctx.fillStyle = darkC;
+  ctx.font = `700 12px Barlow, sans-serif`;
+  ctx.fillText('AI Involvement', 18, 105);
+  ctx.font = `900 36px "Space Mono", monospace`;
+  ctx.fillStyle = mainC;
+  ctx.fillText(d.aiScoreVal, 18, 142);
+  ctx.font = `400 13px "Space Mono", monospace`;
+  ctx.fillStyle = '#888';
+  ctx.fillText('/ 100  ·  ' + d.aiLevelEl, 72, 142);
+
+  // divider
+  ctx.strokeStyle = '#ddd'; ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.moveTo(18, 155); ctx.lineTo(W-18, 155); ctx.stroke();
+
+  // Trustworthiness
+  ctx.fillStyle = '#555';
+  ctx.font = `700 11px Barlow, sans-serif`;
+  ctx.fillText('Trustworthiness', 18, 174);
+  ctx.fillStyle = '#1A4A8B';
+  ctx.font = `900 20px Barlow, sans-serif`;
+  ctx.fillText(d.twVal, 18, 196);
+
+  // Verification
+  ctx.fillStyle = '#555';
+  ctx.font = `400 11px Barlow, sans-serif`;
+  ctx.fillText('👁 ' + d.indepText, 18, 216);
+  if (d.verifBadgeTexts.length) {
+    ctx.font = `400 10px Barlow, sans-serif`;
+    ctx.fillStyle = '#0D6E6E';
+    ctx.fillText(d.verifBadgeTexts.join(' · '), 18, 232);
+  }
+
+  // footer
+  ctx.fillStyle = '#bbb';
+  ctx.font = `400 9px "Space Mono", monospace`;
+  ctx.fillText('Generated by AI Nutrition Label Calculator', 18, H - 10);
+
+  // download
+  const link = document.createElement('a');
+  link.download = `ai-label-${(d.typeName || 'content').replace(/\s+/g,'-').toLowerCase()}.png`;
+  link.href = canvas.toDataURL('image/png');
+  link.click();
+  showFeedback('Image downloaded!');
+}
+
+// ── helpers ──
+function roundRect(ctx, x, y, w, h, r, fill, stroke, lw, topOnly) {
+  ctx.beginPath();
+  ctx.moveTo(x + r, y);
+  ctx.lineTo(x + w - r, y);
+  ctx.quadraticCurveTo(x + w, y, x + w, y + r);
+  if (topOnly) {
+    ctx.lineTo(x + w, y + h);
+    ctx.lineTo(x, y + h);
+  } else {
+    ctx.lineTo(x + w, y + h - r);
+    ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+    ctx.lineTo(x + r, y + h);
+    ctx.quadraticCurveTo(x, y + h, x, y + h - r);
+  }
+  ctx.lineTo(x, y + r);
+  ctx.quadraticCurveTo(x, y, x + r, y);
+  ctx.closePath();
+  if (fill && fill !== 'transparent') { ctx.fillStyle = fill; ctx.fill(); }
+  if (stroke && stroke !== 'transparent' && lw > 0) { ctx.strokeStyle = stroke; ctx.lineWidth = lw; ctx.stroke(); }
+}
+
+function copyToClipboard(text, successMsg) {
+  navigator.clipboard.writeText(text).then(() => showFeedback(successMsg))
+    .catch(() => {
+      const ta = document.createElement('textarea');
+      ta.value = text; ta.style.cssText = 'position:fixed;opacity:0';
+      document.body.appendChild(ta); ta.select();
+      document.execCommand('copy');
+      document.body.removeChild(ta);
+      showFeedback(successMsg);
+    });
+}
+
+function showFeedback(msg) {
+  const el = document.getElementById('exportFeedback');
+  if (!el) return;
+  el.textContent = '✅ ' + msg;
+  el.style.opacity = '1';
+  setTimeout(() => { el.style.opacity = '0'; setTimeout(() => { el.textContent = ''; }, 400); }, 2200);
+}
+
+/* ════════════════════════════════════════
+   RESET
+════════════════════════════════════════ */
+function resetScorePanel() {
+  document.getElementById('scorePanel').className = 'score-panel';
+  document.getElementById('aiScoreVal').textContent = '—';
+  document.getElementById('aiScoreLabel').textContent = '';
+  document.getElementById('aiBarFill').style.width = '0%';
+  const twEl = document.getElementById('trustworthyVal');
+  if (twEl) { twEl.textContent = '—'; twEl.className = 'score-trust-val tw-none'; }
+  const tb = document.getElementById('trustBarFill');
+  if (tb) tb.style.width = '0%';
+  const vla = document.getElementById('verifLevelArea');
+  if (vla) vla.innerHTML = '';
+  const tnb = document.getElementById('truthNoteBox');
+  if (tnb) tnb.style.display = 'none';
+}
+
+function resetAll() {
+  currentCat = null; currentType = null;
+  elemStates = {}; verifStates = {}; transpStates = {}; indepVerifState = 'none'; verifBadgeMax = 0; userSelectedVerif = false;
+  document.querySelectorAll('.cat-btn').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('.iv-btn').forEach(b => b.classList.remove('active'));
+  ['subSection','elemSection','resultSection','trustSection'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.classList.remove('visible');
+  });
+  document.querySelectorAll('.trust-badge').forEach(b => b.classList.remove('active'));
+  const ep = document.getElementById('exportPanel');
+  if (ep) ep.style.display = 'none';
+  resetScorePanel();
+  sendHeight();
+}
+
+function smoothScrollTo(id, offset) {
+  offset = offset || 0;
+  const el = document.getElementById(id);
+  if (!el) return;
+  const target = el.getBoundingClientRect().top + window.pageYOffset - offset;
+  const start = window.pageYOffset, dist = target - start, dur = 450;
+  let t0 = null;
+  function ease(t) { return t < 0.5 ? 2*t*t : -1+(4-2*t)*t; }
+  function step(ts) {
+    if (!t0) t0 = ts;
+    const p = Math.min((ts - t0) / dur, 1);
+    window.scrollTo(0, start + dist * ease(p));
+    if (p < 1) requestAnimationFrame(step);
+  }
+  requestAnimationFrame(step);
+  try { window.parent.postMessage({ scrollTo: target }, '*'); } catch(e) {}
+}
+function sendHeight() {
+  try { window.parent.postMessage({ type:'resize', height: document.body.scrollHeight + 40 }, '*'); } catch(e) {}
+}
+window.addEventListener('load', sendHeight);
+window.addEventListener('resize', sendHeight);
+new MutationObserver(sendHeight).observe(document.body, { childList:true, subtree:true, attributes:true });
+</script>
+</body>
+</html>
